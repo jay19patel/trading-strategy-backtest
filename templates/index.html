@@ -21,8 +21,8 @@
                     
                     <div class="form-group">
                         <label for="symbol">Symbol</label>
-                        <input type="text" id="symbol" name="symbol" value="BTCUSDT" 
-                               placeholder="e.g., BTCUSDT, ETHUSDT" required>
+                        <input type="text" id="symbol" name="symbol" value="BTC-USD" 
+                               placeholder="e.g., BTC-USD, ETH-USD" required>
                         <small>Enter the trading pair symbol</small>
                     </div>
 
@@ -115,6 +115,171 @@
                 </div>
             </div>
 
+            <!-- Indicators Section -->
+            <div class="form-section full-width">
+                <h2>📈 Technical Indicators</h2>
+                
+                <div class="form-group">
+                    <label for="ema_periods">EMA Periods (9 and 15 will be used)</label>
+                    <input type="text" id="ema_periods" name="ema_periods" 
+                           value="9,15" placeholder="e.g., 9,15" readonly style="background: #e9ecef;">
+                    <small>Using 9 EMA and 15 EMA for fixed strategy</small>
+                </div>
+            </div>
+
+            <!-- Fixed Strategy Info -->
+            <div class="form-section full-width">
+                <h2>🎯 Strategy Rules (Fixed)</h2>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                    <h3 style="color: #28a745; margin-bottom: 10px;">📊 LONG Entry Conditions (All must be true):</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        <li>✅ 15 EMA > 9 EMA</li>
+                        <li>✅ Previous High < Current High</li>
+                        <li>✅ Current High > 9 EMA</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <h3 style="color: #dc3545; margin-bottom: 10px;">📉 SHORT Entry Conditions (All must be true):</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        <li>✅ Previous 9 EMA > 15 EMA</li>
+                        <li>✅ Current Close < Previous Close</li>
+                        <li>✅ Current Close < 9 EMA</li>
+                    </ul>
+                </div>
+            </div>
+            </div>
+
+            <!-- Condition Builder Section (Hidden) -->
+            <div class="conditions-section" style="display: none;">
+                <div class="condition-builder">
+                    <h2>📊 LONG (Buy) Conditions</h2>
+                    <select class="logic-selector" name="long_logic" id="long_logic">
+                        <option value="AND">AND (All conditions must be true)</option>
+                        <option value="OR">OR (Any condition must be true)</option>
+                    </select>
+                    <div id="long-conditions">
+                        <div class="condition-item">
+                            <div class="condition-row">
+                                <select class="condition-field" name="long_field[]">
+                                    <option value="Close">Close Price</option>
+                                    <option value="High">High Price</option>
+                                    <option value="Low">Low Price</option>
+                                    <option value="EMA">EMA</option>
+                                    <option value="RSI">RSI</option>
+                                </select>
+                                
+                                <select class="condition-shift" name="long_shift[]">
+                                    <option value="0">Current Candle</option>
+                                    <option value="1">Previous (1)</option>
+                                    <option value="2">Previous (2)</option>
+                                </select>
+                                
+                                <select class="condition-operator" name="long_operator[]">
+                                    <option value="gt">&gt;</option>
+                                    <option value="gte">&gt;=</option>
+                                    <option value="lt">&lt;</option>
+                                    <option value="lte">&lt;=</option>
+                                    <option value="eq">=</option>
+                                </select>
+                                
+                                <select class="condition-compare-to" name="long_compare_to[]">
+                                    <option value="value">Value</option>
+                                    <option value="Close">Close Price</option>
+                                    <option value="EMA">EMA</option>
+                                    <option value="RSI">RSI</option>
+                                </select>
+                                
+                                <input type="text" class="condition-value" name="long_value[]" 
+                                       placeholder="Enter value">
+                                
+                                <select class="condition-ema-period" name="long_ema_period[]" style="display:none;">
+                                    <option value="9">9 EMA</option>
+                                    <option value="15" selected>15 EMA</option>
+                                </select>
+                                <select class="condition-rsi-period" name="long_rsi_period[]" style="display:none;">
+                                    <option value="14" selected>14 RSI</option>
+                                </select>
+                                <select class="condition-compare-ema-period" name="long_compare_ema_period[]" style="display:none;">
+                                    <option value="9">9 EMA</option>
+                                    <option value="15" selected>15 EMA</option>
+                                </select>
+                                <select class="condition-compare-rsi-period" name="long_compare_rsi_period[]" style="display:none;">
+                                    <option value="14" selected>14 RSI</option>
+                                </select>
+                                
+                                <button type="button" class="btn-remove-condition" onclick="removeCondition(this)">❌</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-condition" onclick="addCondition('long')">+ Add Condition</button>
+                </div>
+
+                <div class="condition-builder">
+                    <h2>📉 SHORT (Sell) Conditions</h2>
+                    <select class="logic-selector" name="short_logic" id="short_logic">
+                        <option value="AND">AND (All conditions must be true)</option>
+                        <option value="OR">OR (Any condition must be true)</option>
+                    </select>
+                    <div id="short-conditions">
+                        <div class="condition-item">
+                            <div class="condition-row">
+                                <select class="condition-field" name="short_field[]">
+                                    <option value="Close">Close Price</option>
+                                    <option value="High">High Price</option>
+                                    <option value="Low">Low Price</option>
+                                    <option value="EMA">EMA</option>
+                                    <option value="RSI">RSI</option>
+                                </select>
+                                
+                                <select class="condition-shift" name="short_shift[]">
+                                    <option value="0">Current Candle</option>
+                                    <option value="1">Previous (1)</option>
+                                    <option value="2">Previous (2)</option>
+                                </select>
+                                
+                                <select class="condition-operator" name="short_operator[]">
+                                    <option value="gt">&gt;</option>
+                                    <option value="gte">&gt;=</option>
+                                    <option value="lt">&lt;</option>
+                                    <option value="lte">&lt;=</option>
+                                    <option value="eq">=</option>
+                                </select>
+                                
+                                <select class="condition-compare-to" name="short_compare_to[]">
+                                    <option value="value">Value</option>
+                                    <option value="Close">Close Price</option>
+                                    <option value="EMA">EMA</option>
+                                    <option value="RSI">RSI</option>
+                                </select>
+                                
+                                <input type="text" class="condition-value" name="short_value[]" 
+                                       placeholder="Enter value">
+                                
+                                <select class="condition-ema-period" name="short_ema_period[]" style="display:none;">
+                                    <option value="9">9 EMA</option>
+                                    <option value="15" selected>15 EMA</option>
+                                </select>
+                                <select class="condition-rsi-period" name="short_rsi_period[]" style="display:none;">
+                                    <option value="14" selected>14 RSI</option>
+                                </select>
+                                <select class="condition-compare-ema-period" name="short_compare_ema_period[]" style="display:none;">
+                                    <option value="9">9 EMA</option>
+                                    <option value="15" selected>15 EMA</option>
+                                </select>
+                                <select class="condition-compare-rsi-period" name="short_compare_rsi_period[]" style="display:none;">
+                                    <option value="14" selected>14 RSI</option>
+                                </select>
+                                
+                                <button type="button" class="btn-remove-condition" onclick="removeCondition(this)">❌</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-condition" onclick="addCondition('short')">+ Add Condition</button>
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn-primary">
                     🚀 Run Backtest
@@ -129,6 +294,198 @@
     <div class="footer">
         <p>Built with Flask & Python | Advanced Backtesting Engine</p>
     </div>
+
+    <script>
+        // Add new condition row
+        function addCondition(type) {
+            const container = document.getElementById(`${type}-conditions`);
+            const newRow = document.createElement('div');
+            newRow.className = 'condition-item';
+            
+            newRow.innerHTML = `
+                <div class="condition-row">
+                    <select class="condition-field" name="${type}_field[]">
+                        <option value="Close">Close Price</option>
+                        <option value="High">High Price</option>
+                        <option value="Low">Low Price</option>
+                        <option value="EMA">EMA</option>
+                        <option value="RSI">RSI</option>
+                    </select>
+                    
+                    <select class="condition-shift" name="${type}_shift[]">
+                        <option value="0">Current Candle</option>
+                        <option value="1">Previous (1)</option>
+                        <option value="2">Previous (2)</option>
+                    </select>
+                    
+                    <select class="condition-operator" name="${type}_operator[]">
+                        <option value="gt">&gt;</option>
+                        <option value="gte">&gt;=</option>
+                        <option value="lt">&lt;</option>
+                        <option value="lte">&lt;=</option>
+                        <option value="eq">=</option>
+                    </select>
+                    
+                    <select class="condition-compare-to" name="${type}_compare_to[]">
+                        <option value="value">Value</option>
+                        <option value="Close">Close Price</option>
+                        <option value="EMA">EMA</option>
+                        <option value="RSI">RSI</option>
+                    </select>
+                    
+                    <input type="text" class="condition-value" name="${type}_value[]" 
+                           placeholder="Enter value">
+                    
+                    <select class="condition-ema-period" name="${type}_ema_period[]" style="display:none;">
+                        <option value="9">9 EMA</option>
+                        <option value="15">15 EMA</option>
+                    </select>
+                    <select class="condition-rsi-period" name="${type}_rsi_period[]" style="display:none;">
+                        <option value="14">14 RSI</option>
+                    </select>
+                    <select class="condition-compare-ema-period" name="${type}_compare_ema_period[]" style="display:none;">
+                        <option value="9">9 EMA</option>
+                        <option value="15">15 EMA</option>
+                    </select>
+                    <select class="condition-compare-rsi-period" name="${type}_compare_rsi_period[]" style="display:none;">
+                        <option value="14">14 RSI</option>
+                    </select>
+                    
+                    <button type="button" class="btn-remove-condition" onclick="removeCondition(this)">❌</button>
+                </div>
+            `;
+            
+            container.appendChild(newRow);
+            attachFieldListeners(newRow);
+            attachCompareToListeners(newRow);
+        }
+
+        // Remove condition row
+        function removeCondition(btn) {
+            btn.closest('.condition-item').remove();
+        }
+
+        // Handle EMA and RSI period selector visibility
+        function attachFieldListeners(row) {
+            const fieldSelect = row.querySelector('.condition-field');
+            const emaPeriodSelect = row.querySelector('.condition-ema-period');
+            const rsiPeriodSelect = row.querySelector('.condition-rsi-period');
+            
+            fieldSelect.addEventListener('change', function() {
+                if (this.value === 'EMA') {
+                    emaPeriodSelect.style.display = 'inline-block';
+                    rsiPeriodSelect.style.display = 'none';
+                } else if (this.value === 'RSI') {
+                    rsiPeriodSelect.style.display = 'inline-block';
+                    emaPeriodSelect.style.display = 'none';
+                } else {
+                    emaPeriodSelect.style.display = 'none';
+                    rsiPeriodSelect.style.display = 'none';
+                }
+            });
+        }
+        
+        // Handle compare-to selector visibility
+        function attachCompareToListeners(row) {
+            const compareToSelect = row.querySelector('.condition-compare-to');
+            const valueInput = row.querySelector('.condition-value');
+            const compareEMAPeriod = row.querySelector('.condition-compare-ema-period');
+            const compareRSIPeriod = row.querySelector('.condition-compare-rsi-period');
+            
+            compareToSelect.addEventListener('change', function() {
+                if (this.value === 'value') {
+                    valueInput.style.display = 'inline-block';
+                    valueInput.setAttribute('placeholder', 'Enter value');
+                    valueInput.setAttribute('type', 'text');
+                    compareEMAPeriod.style.display = 'none';
+                    compareRSIPeriod.style.display = 'none';
+                } else if (this.value === 'EMA') {
+                    compareEMAPeriod.style.display = 'inline-block';
+                    valueInput.style.display = 'none';
+                    valueInput.setAttribute('type', 'hidden');
+                    compareRSIPeriod.style.display = 'none';
+                } else if (this.value === 'RSI') {
+                    compareRSIPeriod.style.display = 'inline-block';
+                    valueInput.style.display = 'none';
+                    valueInput.setAttribute('type', 'hidden');
+                    compareEMAPeriod.style.display = 'none';
+                } else {
+                    valueInput.style.display = 'none';
+                    valueInput.setAttribute('type', 'hidden');
+                    compareEMAPeriod.style.display = 'none';
+                    compareRSIPeriod.style.display = 'none';
+                }
+            });
+            
+            // Also handle RSI value validation
+            const fieldSelect = row.querySelector('.condition-field');
+            valueInput.addEventListener('input', function() {
+                if (fieldSelect.value === 'RSI' && compareToSelect.value === 'value') {
+                    const val = parseFloat(this.value);
+                    if (val < 0 || val > 100) {
+                        this.setCustomValidity('RSI values must be between 0 and 100');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                }
+            });
+        }
+
+        // Attach listeners to existing conditions (only if condition builder is visible)
+        const conditionsSection = document.querySelector('.conditions-section');
+        if (conditionsSection && conditionsSection.style.display !== 'none') {
+            document.querySelectorAll('.condition-item').forEach(item => {
+                attachFieldListeners(item);
+                attachCompareToListeners(item);
+            });
+        }
+
+        // Update EMA periods dropdown when user inputs change
+        const emaPeriodsInput = document.getElementById('ema_periods');
+        if (emaPeriodsInput) {
+            emaPeriodsInput.addEventListener('input', function() {
+                const periods = this.value.split(',').map(p => p.trim()).filter(p => p);
+                updateEMADropdowns(periods);
+            });
+        }
+
+        // Update RSI periods dropdown when user inputs change
+        const rsiPeriodsInput = document.getElementById('rsi_periods');
+        if (rsiPeriodsInput) {
+            rsiPeriodsInput.addEventListener('input', function() {
+                const periods = this.value.split(',').map(p => p.trim()).filter(p => p);
+                updateRSIDropdowns(periods);
+            });
+        }
+
+        function updateEMADropdowns(periods) {
+            document.querySelectorAll('.condition-ema-period').forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '';
+                periods.forEach(period => {
+                    const option = document.createElement('option');
+                    option.value = period;
+                    option.textContent = `${period} EMA`;
+                    option.selected = (period === currentValue);
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        function updateRSIDropdowns(periods) {
+            document.querySelectorAll('.condition-rsi-period').forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '';
+                periods.forEach(period => {
+                    const option = document.createElement('option');
+                    option.value = period;
+                    option.textContent = `${period} RSI`;
+                    option.selected = (period === currentValue);
+                    select.appendChild(option);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
 

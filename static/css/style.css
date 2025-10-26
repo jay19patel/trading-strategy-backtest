@@ -355,6 +355,122 @@ body {
     font-size: 0.9rem;
 }
 
+/* Full Width Section */
+.form-section.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Conditions Section */
+.conditions-section {
+    padding: 40px;
+    background: #f8f9fa;
+}
+
+.condition-builder {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    border: 2px solid #e9ecef;
+}
+
+.condition-builder h2 {
+    color: #2c3e50;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+}
+
+.condition-item {
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.condition-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 0.8fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.logic-selector {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+}
+
+.condition-field,
+.condition-operator,
+.condition-value,
+.condition-ema-period,
+.condition-rsi-period,
+.condition-shift,
+.condition-compare-to,
+.condition-compare-ema-period,
+.condition-compare-rsi-period {
+    padding: 8px 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.condition-field:focus,
+.condition-operator:focus,
+.condition-value:focus,
+.condition-ema-period:focus,
+.condition-rsi-period:focus,
+.condition-shift:focus,
+.condition-compare-to:focus,
+.condition-compare-ema-period:focus,
+.condition-compare-rsi-period:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-add-condition,
+.btn-remove-condition {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.btn-add-condition {
+    background: #667eea;
+    color: white;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.btn-add-condition:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+}
+
+.btn-remove-condition {
+    background: #dc3545;
+    color: white;
+    padding: 8px 12px;
+    font-size: 1.2rem;
+}
+
+.btn-remove-condition:hover {
+    background: #c82333;
+}
+
 /* History Section */
 .history-list {
     padding: 40px;

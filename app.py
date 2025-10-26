@@ -37,11 +37,13 @@ def download_and_process_data(symbol, period, interval):
     df['Date'] = df.index.date
     df['Time'] = df.index.strftime('%I:%M %p')  # AM/PM format
 
-    # Calculate EMAs
+    # Calculate fixed EMAs (9 and 15) for strategy
     ema_list = [9, 15]
     for ema_length in ema_list:
         ema_name = f'{ema_length}EMA'
         df[ema_name] = ta.trend.EMAIndicator(close=df['Close'], window=ema_length, fillna=False).ema_indicator()
+
+    # No RSI needed for fixed strategy
 
     df['Candle'] = df.apply(lambda row: 'Green' if row['Close'] >= row['Open'] else 'Red', axis=1)
 
@@ -64,36 +66,184 @@ def download_and_process_data(symbol, period, interval):
     df['Avg_Lower_Shadow'] = df['Lower_Shadow'].rolling(window=SEMA, min_periods=1).mean()
     df["ALUS"] = df['Avg_Lower_Shadow'] / df['Avg_Upper_Shadow']
 
-    # Candle signal conditions
-    body_large_condition = df['Body'] >= 50
+    return df
 
-    shadow_conditions = [
-        np.logical_and(~body_large_condition, df['Upper_Shadow'] <= 30, df['Lower_Shadow'] >= 70),
-        np.logical_and(~body_large_condition, df['Upper_Shadow'] >= 70, df['Lower_Shadow'] <= 30)
-    ]
-    shadow_choices = ["Bullish", "Bearish"]
 
-    df['Candle_Signal'] = np.select(
-        shadow_conditions,
-        shadow_choices,
-        default="Neutral"
-    )
+def apply_fixed_strategy_conditions(df):
+    """Apply fixed strategy conditions"""
+    df['Action'] = None
+    
+    # Ensure required columns exist
+    if '9EMA' not in df.columns or '15EMA' not in df.columns:
+        return df
+    
+    # Create shifted columns to avoid NaN issues
+    df['Prev_High'] = df['High'].shift(1)
+    df['Prev_Close'] = df['Close'].shift(1)
+    df['Prev_9EMA'] = df['9EMA'].shift(1)
+    
+    # LONG Entry Conditions (All must be true):
+    # 1. 15 EMA > 9 EMA
+    # 2. Previous High < Current High
+    # 3. Current High > 9 EMA
+    
+    long_condition_1 = df['15EMA'] > df['9EMA']
+    long_condition_2 = df['Prev_High'] < df['High']
+    long_condition_3 = df['High'] > df['9EMA']
+    
+    long_entry = long_condition_1 & long_condition_2 & long_condition_3
+    
+    # SHORT Entry Conditions (All must be true):
+    # 1. Previous 9 EMA > 15 EMA
+    # 2. Current Close < Previous Close
+    # 3. Current Close < 9 EMA
+    
+    short_condition_1 = df['Prev_9EMA'] > df['15EMA']
+    short_condition_2 = df['Close'] < df['Prev_Close']
+    short_condition_3 = df['Close'] < df['9EMA']
+    
+    short_entry = short_condition_1 & short_condition_2 & short_condition_3
+    
+    # Set actions (fillna to avoid issues)
+    df.loc[long_entry.fillna(False), 'Action'] = 'buy'
+    df.loc[short_entry.fillna(False), 'Action'] = 'sell'
+    
+    return df
 
-    def define_ce_conditions(df):
-        ema_selected = 15
-        condition1 = ((df['High'].shift(1) < df[f'{ema_selected}EMA'].shift(1)) & 
-                     (df["Close"] > df[f'{ema_selected}EMA']))
-        return condition1
 
-    def define_pe_conditions(df):
-        ema_selected = 15
-        condition1 = ((df['Low'].shift(1) > df[f'{ema_selected}EMA'].shift(1)) & 
-                         (df["Close"] < df[f'{ema_selected}EMA']))
-        return condition1
-
-    df['Action'] = np.select([define_ce_conditions(df), define_pe_conditions(df)], 
-                             ['buy', 'sell'], default=None)
-
+def parse_and_apply_conditions(df, long_conditions, short_conditions, long_logic='AND', short_logic='AND'):
+    """Parse conditions and apply them to dataframe with AND/OR logic"""
+    def get_series(df, field, shift=0, period=None):
+        """Get series with optional shift for previous candles"""
+        if field in ['Close', 'High', 'Low']:
+            series = df[field]
+        elif field == 'EMA':
+            series = df[f'{period}EMA']
+        elif field == 'RSI':
+            rsi_column = f'RSI{period}'
+            if rsi_column in df.columns:
+                series = df[rsi_column]
+            else:
+                series = df.get('RSI14', pd.Series())
+        
+        # Apply shift for previous candles
+        if shift > 0:
+            series = series.shift(shift)
+        return series
+    
+    def apply_condition_list(df, conditions, logic='AND'):
+        """Apply multiple conditions with AND/OR logic"""
+        if not conditions or len(conditions) == 0:
+            return pd.Series([False] * len(df))
+        
+        results = []
+        
+        for condition in conditions:
+            field = condition.get('field')
+            shift = int(condition.get('shift', 0))
+            operator = condition.get('operator')
+            compare_to = condition.get('compare_to', 'value')
+            value = condition.get('value')
+            
+            # Get left side series
+            if field == 'EMA':
+                ema_period = condition.get('ema_period', '15')
+                left_series = get_series(df, 'EMA', shift, ema_period)
+            elif field == 'RSI':
+                rsi_period = condition.get('rsi_period', '14')
+                left_series = get_series(df, 'RSI', shift, rsi_period)
+            else:
+                left_series = get_series(df, field, shift)
+            
+            # Get right side series
+            if compare_to == 'value':
+                if operator == 'gt':
+                    result = left_series > float(value)
+                elif operator == 'gte':
+                    result = left_series >= float(value)
+                elif operator == 'lt':
+                    result = left_series < float(value)
+                elif operator == 'lte':
+                    result = left_series <= float(value)
+                elif operator == 'eq':
+                    result = left_series == float(value)
+                else:
+                    result = pd.Series([False] * len(df))
+            elif compare_to == 'Close':
+                right_series = get_series(df, 'Close', 0)
+                if operator == 'gt':
+                    result = left_series > right_series
+                elif operator == 'gte':
+                    result = left_series >= right_series
+                elif operator == 'lt':
+                    result = left_series < right_series
+                elif operator == 'lte':
+                    result = left_series <= right_series
+                elif operator == 'eq':
+                    result = left_series == right_series
+                else:
+                    result = pd.Series([False] * len(df))
+            elif compare_to == 'EMA':
+                compare_ema_period = condition.get('compare_ema_period', '15')
+                right_series = get_series(df, 'EMA', 0, compare_ema_period)
+                if operator == 'gt':
+                    result = left_series > right_series
+                elif operator == 'gte':
+                    result = left_series >= right_series
+                elif operator == 'lt':
+                    result = left_series < right_series
+                elif operator == 'lte':
+                    result = left_series <= right_series
+                elif operator == 'eq':
+                    result = left_series == right_series
+                else:
+                    result = pd.Series([False] * len(df))
+            elif compare_to == 'RSI':
+                compare_rsi_period = condition.get('compare_rsi_period', '14')
+                right_series = get_series(df, 'RSI', 0, compare_rsi_period)
+                if operator == 'gt':
+                    result = left_series > right_series
+                elif operator == 'gte':
+                    result = left_series >= right_series
+                elif operator == 'lt':
+                    result = left_series < right_series
+                elif operator == 'lte':
+                    result = left_series <= right_series
+                elif operator == 'eq':
+                    result = left_series == right_series
+                else:
+                    result = pd.Series([False] * len(df))
+            else:
+                continue
+            
+            results.append(result)
+        
+        # Combine conditions based on logic
+        if not results:
+            return pd.Series([False] * len(df))
+        
+        if logic == 'AND':
+            combined = results[0]
+            for r in results[1:]:
+                combined = combined & r
+        else:  # OR
+            combined = results[0]
+            for r in results[1:]:
+                combined = combined | r
+        
+        return combined
+    
+    # Apply LONG conditions
+    long_mask = apply_condition_list(df, long_conditions, long_logic)
+    
+    # Apply SHORT conditions
+    short_mask = apply_condition_list(df, short_conditions, short_logic)
+    
+    # Create Action column
+    df['Action'] = None
+    df.loc[long_mask, 'Action'] = 'buy'
+    df.loc[short_mask, 'Action'] = 'sell'
+    
     return df
 
 
@@ -198,7 +348,7 @@ def run_backtest():
     """Process backtest request"""
     try:
         # Get form parameters
-        symbol = request.form.get('symbol', 'BTCUSDT').upper()
+        symbol = request.form.get('symbol', 'BTC-USD').upper()
         initial_balance = float(request.form.get('initial_balance', 1000))
         max_hold_hours = float(request.form.get('max_hold_hours', 12))
         risk_reward = request.form.get('risk_reward', '1:2')
@@ -209,12 +359,15 @@ def run_backtest():
         period = request.form.get('period', '2d')
         interval = request.form.get('interval', '15m')
         strategy_name = request.form.get('strategy_name', 'Scalping Strategy')
-
+        
         # Convert max hold hours to minutes
         max_hold_minutes = max_hold_hours * 60
 
         # Download and process data
         df = download_and_process_data(symbol, period, interval)
+        
+        # Apply fixed strategy conditions
+        df = apply_fixed_strategy_conditions(df)
 
         if df.empty:
             return jsonify({'error': 'No data available for this symbol'}), 400
