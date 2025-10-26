@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtest Results - Crypto Trading</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Backtest Results</h1>
+            <p>{{ stats.strategy }} - {{ stats.symbol }}</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="cards-grid">
+            <div class="card highlight">
+                <div class="card-icon">💰</div>
+                <div class="card-content">
+                    <div class="card-label">Final Balance</div>
+                    <div class="card-value">${{ stats.final_balance }}</div>
+                </div>
+            </div>
+
+            <div class="card {% if stats.total_return_pct >= 0 %}success{% else %}danger{% endif %}">
+                <div class="card-icon">📊</div>
+                <div class="card-content">
+                    <div class="card-label">Total Return</div>
+                    <div class="card-value">{{ stats.total_return_pct }}%</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <div class="card-content">
+                    <div class="card-label">Win Rate</div>
+                    <div class="card-value">{{ stats.win_rate }}%</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">📈</div>
+                <div class="card-content">
+                    <div class="card-label">Total Trades</div>
+                    <div class="card-value">{{ stats.total_trades }}</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">✅</div>
+                <div class="card-content">
+                    <div class="card-label">Winning Trades</div>
+                    <div class="card-value">{{ stats.winning_trades }}</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">❌</div>
+                <div class="card-content">
+                    <div class="card-label">Losing Trades</div>
+                    <div class="card-value">{{ stats.losing_trades }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Statistics -->
+        <div class="stats-section">
+            <h2>📊 Performance Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Initial Balance</div>
+                    <div class="stat-value">${{ stats.initial_balance }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total P&L</div>
+                    <div class="stat-value {% if stats.total_pnl >= 0 %}profit{% else %}loss{% endif %}">
+                        ${{ stats.total_pnl }}
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg Win</div>
+                    <div class="stat-value profit">${{ stats.avg_win }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg Loss</div>
+                    <div class="stat-value loss">${{ stats.avg_loss }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Max Win</div>
+                    <div class="stat-value profit">${{ stats.max_win }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Max Loss</div>
+                    <div class="stat-value loss">${{ stats.max_loss }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Max Drawdown</div>
+                    <div class="stat-value">{{ stats.max_drawdown }}%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Leverage</div>
+                    <div class="stat-value">{{ stats.leverage }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Risk:Reward</div>
+                    <div class="stat-value">{{ stats.risk_reward }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Stop Loss %</div>
+                    <div class="stat-value">{{ stats.stop_loss_pct }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg Holding Time</div>
+                    <div class="stat-value">{{ stats.avg_holding_minutes }} min</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Long Trades (Wins)</div>
+                    <div class="stat-value">{{ stats.long_trades }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Short Trades (Wins)</div>
+                    <div class="stat-value">{{ stats.short_trades }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Fees</div>
+                    <div class="stat-value">${{ stats.total_fees }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphs -->
+        {% if balance_curve %}
+        <div class="graph-section">
+            <h2>💹 Balance Growth Over Time</h2>
+            <div class="graph-container">
+                <img src="data:image/png;base64,{{ balance_curve }}" alt="Balance Curve">
+            </div>
+        </div>
+        {% endif %}
+
+        {% if trade_visualization %}
+        <div class="graph-section">
+            <h2>📉 Trade Entry & Exit Visualization</h2>
+            <div class="graph-container">
+                <img src="data:image/png;base64,{{ trade_visualization }}" alt="Trade Visualization">
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Trades Table -->
+        <div class="table-section">
+            <h2>📋 Trade History</h2>
+            <div class="table-container">
+                <table class="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Side</th>
+                            <th>Entry Price</th>
+                            <th>Exit Price</th>
+                            <th>Entry Time</th>
+                            <th>Exit Time</th>
+                            <th>P&L</th>
+                            <th>P&L %</th>
+                            <th>Exit Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trade in trades %}
+                        <tr class="{% if trade.Status == 'OPEN' %}open-trade{% elif trade.RealizedPnL > 0 %}profit-trade{% else %}loss-trade{% endif %}">
+                            <td>{{ trade.Side }}</td>
+                            <td>${{ "{:.4f}".format(trade.EntryPrice) }}</td>
+                            <td>{% if trade.ExitPrice %}${{ "{:.4f}".format(trade.ExitPrice) }}{% else %}--{% endif %}</td>
+                            <td>{{ trade.EntryTime }}</td>
+                            <td>{% if trade.ExitTime %}{{ trade.ExitTime }}{% else %}--{% endif %}</td>
+                            <td class="{% if trade.RealizedPnL > 0 %}profit{% else %}loss{% endif %}">
+                                {% if trade.RealizedPnL %}${{ "{:.2f}".format(trade.RealizedPnL) }}{% else %}--{% endif %}
+                            </td>
+                            <td class="{% if trade['PnL%'] > 0 %}profit{% else %}loss{% endif %}">
+                                {% if trade['PnL%'] %}{{ "{:.2f}".format(trade['PnL%']) }}%{% else %}--{% endif %}
+                            </td>
+                            <td>{{ trade.ExitReason or '--' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-section">
+            <a href="/" class="btn-secondary">← New Backtest</a>
+            <a href="/history" class="btn-secondary" style="margin: 0 10px;">📜 View History</a>
+            <a href="/download/{{ csv_filename.split('/')[-1] }}" class="btn-primary" download>
+                📥 Download CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Backtest completed at {{ timestamp }}</p>
+    </div>
+</body>
+</html>
+

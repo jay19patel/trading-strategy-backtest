@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtest History - Crypto Trading</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📜 Backtest History</h1>
+            <p>View and analyze your previous backtest results</p>
+        </div>
+
+        <div class="history-list">
+            {% if backtests %}
+                <table class="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Total Trades</th>
+                            <th>Win Rate</th>
+                            <th>Total P&L</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backtest in backtests %}
+                        <tr>
+                            <td><strong>{{ backtest.symbol }}</strong></td>
+                            <td>{{ backtest.date }}</td>
+                            <td>{{ backtest.time }}</td>
+                            <td>{{ backtest.total_trades }}</td>
+                            <td>{{ backtest.win_rate }}%</td>
+                            <td class="{% if backtest.total_pnl >= 0 %}profit{% else %}loss{% endif %}">
+                                ${{ backtest.total_pnl }}
+                            </td>
+                            <td>
+                                <a href="/view_backtest/{{ backtest.filename }}" class="btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                                    View Analysis
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h2>No Backtests Yet</h2>
+                    <p>You haven't run any backtests yet. Run your first backtest to get started!</p>
+                    <a href="/" class="btn-primary">Run Backtest</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="actions-section">
+            <a href="/" class="btn-secondary">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Total Backtests: {{ backtests|length if backtests else 0 }}</p>
+    </div>
+</body>
+</html>
+

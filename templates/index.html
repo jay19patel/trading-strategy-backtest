@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Backtesting Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Crypto Backtesting Platform</h1>
+            <p>Test your trading strategies with realistic margin trading simulation</p>
+        </div>
+
+        <form method="POST" action="/backtest" class="backtest-form">
+            <div class="form-grid">
+                <div class="form-section">
+                    <h2>📊 Trading Parameters</h2>
+                    
+                    <div class="form-group">
+                        <label for="symbol">Symbol</label>
+                        <input type="text" id="symbol" name="symbol" value="BTCUSDT" 
+                               placeholder="e.g., BTCUSDT, ETHUSDT" required>
+                        <small>Enter the trading pair symbol</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="strategy_name">Strategy Name</label>
+                        <input type="text" id="strategy_name" name="strategy_name" 
+                               value="Scalping Strategy" placeholder="Strategy name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="initial_balance">Initial Balance (USDT)</label>
+                        <input type="number" id="initial_balance" name="initial_balance" 
+                               value="1000" min="10" step="10" required>
+                        <small>Starting capital</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="leverage">Leverage</label>
+                        <input type="number" id="leverage" name="leverage" 
+                               value="50" min="1" max="125" required>
+                        <small>Leverage multiplier (1-125)</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>⚙️ Risk Management</h2>
+                    
+                    <div class="form-group">
+                        <label for="risk_reward">Risk:Reward Ratio</label>
+                        <input type="text" id="risk_reward" name="risk_reward" 
+                               value="1:2" placeholder="e.g., 1:2 or 1:3" required>
+                        <small>Risk to reward ratio</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stop_loss">Stop Loss (%)</label>
+                        <input type="number" id="stop_loss" name="stop_loss" 
+                               value="2.0" min="0.1" max="10" step="0.1" required>
+                        <small>Maximum loss percentage</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="margin_per_trade">Margin per Trade (%)</label>
+                        <input type="number" id="margin_per_trade" name="margin_per_trade" 
+                               value="30" min="1" max="100" step="1" required>
+                        <small>Percentage of balance per trade</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="trading_fee">Trading Fee (%)</label>
+                        <input type="number" id="trading_fee" name="trading_fee" 
+                               value="0.1" min="0" max="1" step="0.01" required>
+                        <small>Platform trading fee</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>⏰ Time Settings</h2>
+                    
+                    <div class="form-group">
+                        <label for="max_hold_hours">Max Holding Time (Hours)</label>
+                        <input type="number" id="max_hold_hours" name="max_hold_hours" 
+                               value="12" min="1" max="168" step="1" required>
+                        <small>Maximum time to hold a position</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="period">Data Period</label>
+                        <select id="period" name="period" required>
+                            <option value="1d">1 Day</option>
+                            <option value="2d" selected>2 Days</option>
+                            <option value="5d">5 Days</option>
+                            <option value="1mo">1 Month</option>
+                            <option value="3mo">3 Months</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="interval">Candle Interval</label>
+                        <select id="interval" name="interval" required>
+                            <option value="1m">1 Minute</option>
+                            <option value="5m">5 Minutes</option>
+                            <option value="15m" selected>15 Minutes</option>
+                            <option value="30m">30 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="4h">4 Hours</option>
+                            <option value="1d">1 Day</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    🚀 Run Backtest
+                </button>
+                <a href="/history" class="btn-secondary" style="margin-left: 10px;">
+                    📜 View History
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="footer">
+        <p>Built with Flask & Python | Advanced Backtesting Engine</p>
+    </div>
+</body>
+</html>
+
