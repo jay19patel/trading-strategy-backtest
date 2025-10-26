@@ -60,9 +60,9 @@ class CryptoMarginTrader:
         return position_value / self.leverage
 
     def calculate_trading_fee(self, position_size, price):
-        """Calculate trading fee"""
-        # position_value = position_size * price
-        return price * self.trading_fee
+        """Calculate trading fee - 0.1% of position value"""
+        position_value = position_size * price
+        return position_value * self.trading_fee
 
     def calculate_unrealized_pnl(self, current_price):
         """Calculate unrealized P&L for active position"""

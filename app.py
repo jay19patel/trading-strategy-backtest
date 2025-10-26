@@ -348,7 +348,14 @@ def run_backtest():
     """Process backtest request"""
     try:
         # Get form parameters
-        symbol = request.form.get('symbol', 'BTC-USD').upper()
+        symbol_input = request.form.get('symbol', 'BTC-USD').upper()
+        
+        # Convert symbol format for yfinance
+        # If it's like BTCUSDT, convert to BTC-USD
+        if len(symbol_input) >= 6 and symbol_input[-4:] == 'USDT':
+            symbol = symbol_input[:-4] + '-USD'
+        else:
+            symbol = symbol_input
         initial_balance = float(request.form.get('initial_balance', 1000))
         max_hold_hours = float(request.form.get('max_hold_hours', 12))
         risk_reward = request.form.get('risk_reward', '1:2')
