@@ -14,84 +14,69 @@
             <p>Test your trading strategies with realistic margin trading simulation</p>
         </div>
 
-        <form method="POST" action="/backtest" class="backtest-form">
-            <div class="form-grid">
-                <div class="form-section">
-                    <h2>📊 Trading Parameters</h2>
-                    
-                    <div class="form-group">
-                        <label for="symbol">Symbol</label>
-                        <input type="text" id="symbol" name="symbol" value="BTC-USD" 
-                               placeholder="e.g., BTC-USD, ETH-USD" required>
-                        <small>Enter the trading pair symbol</small>
+        <form method="POST" action="/backtest_custom" class="backtest-form">
+            <!-- Compact Trading Settings -->
+            <div class="form-section full-width" style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h2>⚙️ Trading Settings</h2>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="symbol" style="font-size: 13px;">Symbol</label>
+                        <input type="text" id="symbol" name="symbol" value="BTC-USD" required
+                               style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="strategy_name">Strategy Name</label>
-                        <input type="text" id="strategy_name" name="strategy_name" 
-                               value="Scalping Strategy" placeholder="Strategy name" required>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="strategy_name" style="font-size: 13px;">Strategy Name</label>
+                        <input type="text" id="strategy_name" name="strategy_name"
+                               value="Scalping Strategy" required style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="initial_balance">Initial Balance (USDT)</label>
-                        <input type="number" id="initial_balance" name="initial_balance" 
-                               value="1000" min="10" step="10" required>
-                        <small>Starting capital</small>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="initial_balance" style="font-size: 13px;">Balance (USDT)</label>
+                        <input type="number" id="initial_balance" name="initial_balance"
+                               value="1000" min="10" step="10" required style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="leverage">Leverage</label>
-                        <input type="number" id="leverage" name="leverage" 
-                               value="50" min="1" max="125" required>
-                        <small>Leverage multiplier (1-125)</small>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h2>⚙️ Risk Management</h2>
-                    
-                    <div class="form-group">
-                        <label for="risk_reward">Risk:Reward Ratio</label>
-                        <input type="text" id="risk_reward" name="risk_reward" 
-                               value="1:2" placeholder="e.g., 1:2 or 1:3" required>
-                        <small>Risk to reward ratio</small>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="leverage" style="font-size: 13px;">Leverage</label>
+                        <input type="number" id="leverage" name="leverage"
+                               value="50" min="1" max="125" required style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="stop_loss">Stop Loss (%)</label>
-                        <input type="number" id="stop_loss" name="stop_loss" 
-                               value="2.0" min="0.1" max="10" step="0.1" required>
-                        <small>Maximum loss percentage</small>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="risk_reward" style="font-size: 13px;">Risk:Reward</label>
+                        <input type="text" id="risk_reward" name="risk_reward"
+                               value="1:2" required style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="margin_per_trade">Margin per Trade (%)</label>
-                        <input type="number" id="margin_per_trade" name="margin_per_trade" 
-                               value="30" min="1" max="100" step="1" required>
-                        <small>Percentage of balance per trade</small>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="stop_loss" style="font-size: 13px;">Stop Loss (%)</label>
+                        <input type="number" id="stop_loss" name="stop_loss"
+                               value="2.0" min="0.1" max="10" step="0.1" required style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="trading_fee">Trading Fee (%)</label>
-                        <input type="number" id="trading_fee" name="trading_fee" 
-                               value="0.1" min="0" max="1" step="0.01" required>
-                        <small>Platform trading fee</small>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h2>⏰ Time Settings</h2>
-                    
-                    <div class="form-group">
-                        <label for="max_hold_hours">Max Holding Time (Hours)</label>
-                        <input type="number" id="max_hold_hours" name="max_hold_hours" 
-                               value="12" min="1" max="168" step="1" required>
-                        <small>Maximum time to hold a position</small>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="margin_per_trade" style="font-size: 13px;">Margin/Trade (%)</label>
+                        <input type="number" id="margin_per_trade" name="margin_per_trade"
+                               value="30" min="1" max="100" step="1" required style="padding: 8px; font-size: 13px;">
                     </div>
 
-                    <div class="form-group">
-                        <label for="period">Data Period</label>
-                        <select id="period" name="period" required>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="trading_fee" style="font-size: 13px;">Trading Fee (%)</label>
+                        <input type="number" id="trading_fee" name="trading_fee"
+                               value="0.1" min="0" max="1" step="0.01" required style="padding: 8px; font-size: 13px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="max_hold_hours" style="font-size: 13px;">Max Hold (Hours)</label>
+                        <input type="number" id="max_hold_hours" name="max_hold_hours"
+                               value="12" min="1" max="168" step="1" required style="padding: 8px; font-size: 13px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="period" style="font-size: 13px;">Data Period</label>
+                        <select id="period" name="period" required style="padding: 8px; font-size: 13px;">
                             <option value="5d" selected>5 Days</option>
                             <option value="1mo">1 Month</option>
                             <option value="3mo">3 Months</option>
@@ -100,67 +85,111 @@
                             <option value="2y">2 Years</option>
                             <option value="5y">5 Years</option>
                             <option value="10y">10 Years</option>
-                            <option value="max">Max (All History)</option>
+                            <option value="max">Max</option>
                         </select>
-                        <small>Select period. For intervals 1m/5m, max period is 7 days</small>
                     </div>
 
-                    <div class="form-group">
-                        <label for="interval">Candle Interval</label>
-                        <select id="interval" name="interval" required>
-                            <option value="1m">1 Minute (max 7 days)</option>
-                            <option value="2m">2 Minutes (max 60 days)</option>
-                            <option value="5m">5 Minutes (max 60 days)</option>
-                            <option value="15m" selected>15 Minutes (max 60 days)</option>
-                            <option value="30m">30 Minutes (max 60 days)</option>
-                            <option value="60m">60 Minutes (max 730 days)</option>
-                            <option value="90m">90 Minutes (max 60 days)</option>
-                            <option value="1h">1 Hour (max 730 days)</option>
-                            <option value="1d">1 Day (unlimited)</option>
-                            <option value="5d">5 Days (unlimited)</option>
-                            <option value="1wk">1 Week (unlimited)</option>
-                            <option value="1mo">1 Month (unlimited)</option>
-                            <option value="3mo">3 Months (unlimited)</option>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="interval" style="font-size: 13px;">Candle Interval</label>
+                        <select id="interval" name="interval" required style="padding: 8px; font-size: 13px;">
+                            <option value="1m">1 Minute</option>
+                            <option value="2m">2 Minutes</option>
+                            <option value="5m">5 Minutes</option>
+                            <option value="15m" selected>15 Minutes</option>
+                            <option value="30m">30 Minutes</option>
+                            <option value="60m">60 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="1d">1 Day</option>
+                            <option value="1wk">1 Week</option>
                         </select>
-                        <small>Yahoo Finance limits based on period selected</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Indicators Section -->
+            <!-- Strategy Editor Section -->
             <div class="form-section full-width">
-                <h2>📈 Technical Indicators</h2>
-                
-                <div class="form-group">
-                    <label for="ema_periods">EMA Periods (9 and 15 will be used)</label>
-                    <input type="text" id="ema_periods" name="ema_periods" 
-                           value="9,15" placeholder="e.g., 9,15" readonly style="background: #e9ecef;">
-                    <small>Using 9 EMA and 15 EMA for fixed strategy</small>
-                </div>
-            </div>
+                <h2>🎯 Strategy Editor</h2>
 
-            <!-- Fixed Strategy Info -->
-            <div class="form-section full-width">
-                <h2>🎯 Strategy Rules (Fixed)</h2>
-                
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
-                    <h3 style="color: #28a745; margin-bottom: 10px;">📊 LONG Entry Conditions (All must be true):</h3>
-                    <ul style="list-style: none; padding: 0; margin: 0;">
-                        <li>✅ 15 EMA > 9 EMA</li>
-                        <li>✅ Previous High < Current High</li>
-                        <li>✅ Current High > 9 EMA</li>
-                    </ul>
+                <div style="margin-bottom: 15px;">
+                    <button type="button" id="load-data-btn" class="btn-secondary" style="margin-bottom: 10px;">
+                        📊 Load DataFrame Info
+                    </button>
+                    <small style="display: block; color: #6c757d;">Click to see available columns and preview last 3 rows</small>
                 </div>
-                
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <h3 style="color: #dc3545; margin-bottom: 10px;">📉 SHORT Entry Conditions (All must be true):</h3>
-                    <ul style="list-style: none; padding: 0; margin: 0;">
-                        <li>✅ Previous 9 EMA > 15 EMA</li>
-                        <li>✅ Current Close < Previous Close</li>
-                        <li>✅ Current Close < 9 EMA</li>
-                    </ul>
+
+                <!-- Available Columns -->
+                <div id="columns-section" style="display: none; margin-bottom: 20px;">
+                    <h3 style="color: #007bff; margin-bottom: 10px;">Available Columns:</h3>
+                    <div id="columns-list" style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px;"></div>
                 </div>
-            </div>
+
+                <!-- DataFrame Preview Table -->
+                <div id="preview-section" style="display: none; margin-bottom: 20px;">
+                    <h3 style="color: #007bff; margin-bottom: 10px;">DataFrame Preview (Last 3 Rows):</h3>
+                    <div style="overflow-x: auto; background: #fff; border: 1px solid #dee2e6; border-radius: 8px;">
+                        <table id="preview-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead id="preview-thead" style="background: #e9ecef;"></thead>
+                            <tbody id="preview-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Strategy Code Editor -->
+                <div style="margin-bottom: 20px;">
+                    <label for="strategy-code" style="display: block; font-weight: 600; margin-bottom: 8px;">
+                        Strategy Code (Python):
+                    </label>
+                    <textarea id="strategy-code" name="strategy_code"
+                              style="width: 100%; height: 400px; font-family: 'Courier New', monospace;
+                                     font-size: 13px; padding: 15px; border: 1px solid #ced4da;
+                                     border-radius: 8px; background: #f8f9fa;">df['Action'] = None
+
+# Ensure required columns exist
+if '9EMA' not in df.columns or '15EMA' not in df.columns:
+    pass
+else:
+    # Create shifted columns to avoid NaN issues
+    df['Prev_High'] = df['High'].shift(1)
+    df['Prev_Close'] = df['Close'].shift(1)
+    df['Prev_9EMA'] = df['9EMA'].shift(1)
+
+    # LONG Entry Conditions (All must be true):
+    # 1. 15 EMA > 9 EMA
+    # 2. Previous High < Current High
+    # 3. Current High > 9 EMA
+
+    long_condition_1 = df['15EMA'] > df['9EMA']
+    long_condition_2 = df['Prev_High'] < df['High']
+    long_condition_3 = df['High'] > df['9EMA']
+
+    long_entry = long_condition_1 & long_condition_2 & long_condition_3
+
+    # SHORT Entry Conditions (All must be true):
+    # 1. Previous 9 EMA > 15 EMA
+    # 2. Current Close < Previous Close
+    # 3. Current Close < 9 EMA
+
+    short_condition_1 = df['Prev_9EMA'] > df['15EMA']
+    short_condition_2 = df['Close'] < df['Prev_Close']
+    short_condition_3 = df['Close'] < df['9EMA']
+
+    short_entry = short_condition_1 & short_condition_2 & short_condition_3
+
+    # Set actions (fillna to avoid issues)
+    df.loc[long_entry.fillna(False), 'Action'] = 'buy'
+    df.loc[short_entry.fillna(False), 'Action'] = 'sell'</textarea>
+                    <small style="display: block; color: #6c757d; margin-top: 5px;">
+                        Write your custom strategy logic here. You have access to 'df', 'pd', and 'np'.
+                        Must set df['Action'] to 'buy' or 'sell' for entries.
+                    </small>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button type="button" id="save-strategy-btn" class="btn-primary">
+                        💾 Save Strategy
+                    </button>
+                    <span id="save-status" style="margin-left: 10px; font-weight: 600;"></span>
+                </div>
             </div>
 
             <!-- Condition Builder Section (Hidden) -->
@@ -308,6 +337,116 @@
     </div>
 
     <script>
+        // Load DataFrame Info
+        document.getElementById('load-data-btn').addEventListener('click', async function() {
+            const symbol = document.getElementById('symbol').value;
+            const period = document.getElementById('period').value;
+            const interval = document.getElementById('interval').value;
+
+            this.disabled = true;
+            this.textContent = '⏳ Loading...';
+
+            try {
+                const response = await fetch('/get_dataframe_info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbol, period, interval })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Display columns
+                    const columnsList = document.getElementById('columns-list');
+                    columnsList.innerHTML = data.columns.map(col => `<span style="display: inline-block; background: #007bff; color: white; padding: 5px 10px; margin: 3px; border-radius: 5px;">${col}</span>`).join('');
+                    document.getElementById('columns-section').style.display = 'block';
+
+                    // Display preview table
+                    const thead = document.getElementById('preview-thead');
+                    const tbody = document.getElementById('preview-tbody');
+
+                    // Create header
+                    const headerRow = document.createElement('tr');
+                    data.columns.forEach(col => {
+                        const th = document.createElement('th');
+                        th.textContent = col;
+                        th.style.padding = '10px';
+                        th.style.borderBottom = '2px solid #dee2e6';
+                        th.style.textAlign = 'left';
+                        th.style.whiteSpace = 'nowrap';
+                        headerRow.appendChild(th);
+                    });
+                    thead.innerHTML = '';
+                    thead.appendChild(headerRow);
+
+                    // Create body
+                    tbody.innerHTML = '';
+                    data.preview.forEach(row => {
+                        const tr = document.createElement('tr');
+                        data.columns.forEach(col => {
+                            const td = document.createElement('td');
+                            const value = row[col];
+                            td.textContent = typeof value === 'number' ? value.toFixed(4) : value;
+                            td.style.padding = '10px';
+                            td.style.borderBottom = '1px solid #dee2e6';
+                            td.style.whiteSpace = 'nowrap';
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('preview-section').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error loading data: ' + error.message);
+            } finally {
+                this.disabled = false;
+                this.textContent = '📊 Load DataFrame Info';
+            }
+        });
+
+        // Save Strategy
+        document.getElementById('save-strategy-btn').addEventListener('click', async function() {
+            const strategyCode = document.getElementById('strategy-code').value;
+            const statusSpan = document.getElementById('save-status');
+
+            this.disabled = true;
+            statusSpan.textContent = '⏳ Saving...';
+            statusSpan.style.color = '#007bff';
+
+            try {
+                const response = await fetch('/save_custom_strategy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ strategy_code: strategyCode })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusSpan.textContent = '✅ Strategy saved!';
+                    statusSpan.style.color = '#28a745';
+                    setTimeout(() => {
+                        statusSpan.textContent = '';
+                    }, 3000);
+                } else {
+                    statusSpan.textContent = '❌ Error: ' + data.error;
+                    statusSpan.style.color = '#dc3545';
+                }
+            } catch (error) {
+                statusSpan.textContent = '❌ Error: ' + error.message;
+                statusSpan.style.color = '#dc3545';
+            } finally {
+                this.disabled = false;
+            }
+        });
+
         // Add new condition row
         function addCondition(type) {
             const container = document.getElementById(`${type}-conditions`);

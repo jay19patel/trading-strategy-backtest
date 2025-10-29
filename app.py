@@ -248,7 +248,7 @@ def parse_and_apply_conditions(df, long_conditions, short_conditions, long_logic
 
 
 def create_balance_curve_image(trader):
-    """Create balance curve plot"""
+    """Create balance curve plot with annotations"""
     closed_trades = trader.trade_book[trader.trade_book['Status'] == 'CLOSED'].copy()
 
     if len(closed_trades) == 0:
@@ -258,25 +258,49 @@ def create_balance_curve_image(trader):
     closed_trades = closed_trades.sort_values('ExitTime')
     closed_trades['CumPnL'] = closed_trades['RealizedPnL'].cumsum()
     closed_trades['Balance'] = trader.initial_balance + closed_trades['CumPnL']
+    closed_trades['PercentageChange'] = ((closed_trades['Balance'] - trader.initial_balance) / trader.initial_balance) * 100
 
     fig, ax = plt.subplots(figsize=(14, 8))
     ax.plot(closed_trades['ExitTime'], closed_trades['Balance'],
-           linewidth=2, color='#2E86AB', label='Account Balance')
+           linewidth=2, color='#2E86AB', label='Account Balance', zorder=5)
     ax.axhline(y=trader.initial_balance, color='#A23B72', linestyle='--',
-              alpha=0.7, label=f'Initial Balance ({trader.initial_balance} USDT)')
+              alpha=0.7, label=f'Initial Balance ({trader.initial_balance} USDT)', zorder=3)
 
     ax.set_title(f'{trader.strategy_name} - Balance Growth Over Time\n{trader.symbol_name} | {trader.leverage}x Leverage',
                 fontsize=14, fontweight='bold')
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('Balance (USDT)', fontsize=12)
     ax.legend(fontsize=11)
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, alpha=0.3, zorder=0)
 
-    # Add profit/loss coloring
+    # Add profit/loss coloring with annotations
     for i in range(len(closed_trades)):
-        color = '#00B894' if closed_trades.iloc[i]['RealizedPnL'] > 0 else '#E17055'
-        ax.scatter(closed_trades.iloc[i]['ExitTime'], closed_trades.iloc[i]['Balance'],
-                  color=color, alpha=0.6, s=30)
+        row = closed_trades.iloc[i]
+        color = '#00B894' if row['RealizedPnL'] > 0 else '#E17055'
+
+        # Plot point
+        ax.scatter(row['ExitTime'], row['Balance'],
+                  color=color, alpha=0.7, s=50, zorder=10,
+                  edgecolors='white', linewidth=1.5)
+
+        # Create annotation text: amount (percentage)
+        annotation_text = f"${row['Balance']:.2f} ({row['PercentageChange']:+.2f}%)"
+
+        # Alternate annotation position (above/below) to avoid overlap
+        y_offset = 15 if i % 2 == 0 else -15
+
+        ax.annotate(annotation_text,
+                   xy=(row['ExitTime'], row['Balance']),
+                   xytext=(0, y_offset),
+                   textcoords='offset points',
+                   fontsize=7,
+                   fontweight='600',
+                   color=color,
+                   ha='center',
+                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                            edgecolor=color, alpha=0.85, linewidth=1),
+                   arrowprops=dict(arrowstyle='->', color=color, lw=1, alpha=0.6),
+                   zorder=15)
 
     plt.tight_layout()
 
@@ -289,42 +313,79 @@ def create_balance_curve_image(trader):
     return image_base64
 
 
-def create_trade_visualization_image(trader):
-    """Create trade entry/exit visualization"""
+def create_trade_visualization_image(trader, df=None):
+    """Create trade entry/exit visualization with candlestick background"""
     trades = trader.trade_book[trader.trade_book['Status'] == 'CLOSED'].copy()
-    
+
     if len(trades) == 0:
         return None
 
     fig, ax = plt.subplots(figsize=(14, 6))
 
+    # Plot candlesticks in background if DataFrame is provided
+    if df is not None and len(df) > 0:
+        # Filter df to time range of trades
+        trades['EntryTime'] = pd.to_datetime(trades['EntryTime'])
+        trades['ExitTime'] = pd.to_datetime(trades['ExitTime'])
+        min_time = trades['EntryTime'].min()
+        max_time = trades['ExitTime'].max()
+
+        # Ensure df has DateTime column
+        if 'DateTime' in df.columns:
+            df_filtered = df[(df['DateTime'] >= min_time) & (df['DateTime'] <= max_time)].copy()
+
+            # Plot candlesticks with low opacity
+            for idx, row in df_filtered.iterrows():
+                color = '#28a745' if row['Close'] >= row['Open'] else '#dc3545'
+
+                # Candlestick body
+                body_height = abs(row['Close'] - row['Open'])
+                body_bottom = min(row['Open'], row['Close'])
+                ax.bar(row['DateTime'], body_height, bottom=body_bottom,
+                      width=pd.Timedelta(minutes=1), color=color, alpha=0.8,
+                      edgecolor=color, linewidth=0.5)
+
+                # Upper wick
+                ax.plot([row['DateTime'], row['DateTime']],
+                       [max(row['Open'], row['Close']), row['High']],
+                       color=color, linewidth=0.8, alpha=0.8)
+
+                # Lower wick
+                ax.plot([row['DateTime'], row['DateTime']],
+                       [row['Low'], min(row['Open'], row['Close'])],
+                       color=color, linewidth=0.8, alpha=0.8)
+
+    # Plot trade lines on top
     for i, (idx, row) in enumerate(trades.iterrows()):
         color = 'green' if row['RealizedPnL'] > 0 else 'red'
         entry_time = pd.to_datetime(row['EntryTime'])
         exit_time = pd.to_datetime(row['ExitTime'])
-        
+
         ax.plot(
             [entry_time, exit_time],
             [row['EntryPrice'], row['ExitPrice']],
             marker='o',
             color=color,
-            linewidth=2,
-            markersize=8,
-            alpha=0.7
+            linewidth=2.5,
+            markersize=10,
+            alpha=0.9,
+            zorder=10
         )
-        
+
         # Annotate profit/loss
         ax.text(exit_time, row['ExitPrice'],
                f"{row['RealizedPnL']:+.2f}",
                fontsize=8,
                color=color,
-               bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7))
+               fontweight='bold',
+               bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9),
+               zorder=11)
 
-    ax.set_title('Trade Entry & Exit Visualization', fontsize=14, fontweight='bold')
+    ax.set_title('Trade Entry & Exit Visualization with Candlestick Background', fontsize=14, fontweight='bold')
     ax.set_xlabel('Time', fontsize=12)
     ax.set_ylabel('Price', fontsize=12)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, alpha=0.3, zorder=0)
     fig.autofmt_xdate()
     plt.tight_layout()
 
@@ -401,7 +462,7 @@ def run_backtest():
 
         # Create images
         balance_curve = create_balance_curve_image(trader)
-        trade_viz = create_trade_visualization_image(trader)
+        trade_viz = create_trade_visualization_image(trader, df)
 
         # Save to CSV
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -481,6 +542,167 @@ def view_history():
         files.sort(key=lambda x: (x['date'], x['time']), reverse=True)
         
         return render_template('history.html', backtests=files)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get_dataframe_info', methods=['POST'])
+def get_dataframe_info():
+    """Get DataFrame columns and last 3 rows preview"""
+    try:
+        symbol_input = request.json.get('symbol', 'BTC-USD').upper()
+
+        # Convert symbol format
+        if len(symbol_input) >= 6 and symbol_input[-4:] == 'USDT':
+            symbol = symbol_input[:-4] + '-USD'
+        else:
+            symbol = symbol_input
+
+        period = request.json.get('period', '5d')
+        interval = request.json.get('interval', '15m')
+
+        # Download and process data
+        df = download_and_process_data(symbol, period, interval)
+
+        if df.empty:
+            return jsonify({'error': 'No data available'}), 400
+
+        # Get column names
+        columns = df.columns.tolist()
+
+        # Get last 3 rows
+        last_3_rows = df.tail(3).copy()
+
+        # Convert datetime columns to string
+        for col in last_3_rows.columns:
+            if pd.api.types.is_datetime64_any_dtype(last_3_rows[col]):
+                last_3_rows[col] = last_3_rows[col].astype(str)
+
+        # Convert to dict
+        preview_data = last_3_rows.to_dict('records')
+
+        return jsonify({
+            'columns': columns,
+            'preview': preview_data
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/save_custom_strategy', methods=['POST'])
+def save_custom_strategy():
+    """Save custom strategy code"""
+    try:
+        strategy_code = request.json.get('strategy_code', '')
+
+        if not strategy_code:
+            return jsonify({'error': 'No strategy code provided'}), 400
+
+        # Save strategy to file
+        strategy_file = 'custom_strategy.py'
+        with open(strategy_file, 'w') as f:
+            f.write(strategy_code)
+
+        return jsonify({'success': True, 'message': 'Strategy saved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/backtest_custom', methods=['POST'])
+def run_backtest_custom():
+    """Run backtest with custom strategy"""
+    try:
+        # Get form parameters
+        symbol_input = request.form.get('symbol', 'BTC-USD').upper()
+
+        # Convert symbol format
+        if len(symbol_input) >= 6 and symbol_input[-4:] == 'USDT':
+            symbol = symbol_input[:-4] + '-USD'
+        else:
+            symbol = symbol_input
+
+        initial_balance = float(request.form.get('initial_balance', 1000))
+        max_hold_hours = float(request.form.get('max_hold_hours', 12))
+        risk_reward = request.form.get('risk_reward', '1:2')
+        stop_loss = float(request.form.get('stop_loss', 2.0))
+        leverage = int(request.form.get('leverage', 50))
+        trading_fee = float(request.form.get('trading_fee', 0.1))
+        margin_per_trade = float(request.form.get('margin_per_trade', 30))
+        period = request.form.get('period', '2d')
+        interval = request.form.get('interval', '15m')
+        strategy_name = request.form.get('strategy_name', 'Custom Strategy')
+        strategy_code = request.form.get('strategy_code', '')
+
+        max_hold_minutes = max_hold_hours * 60
+
+        # Download and process data
+        df = download_and_process_data(symbol, period, interval)
+
+        if df.empty:
+            return jsonify({'error': 'No data available'}), 400
+
+        # Apply custom strategy if provided, otherwise use fixed
+        if strategy_code:
+            # Create a safe namespace for executing strategy
+            namespace = {
+                'df': df,
+                'pd': pd,
+                'np': np
+            }
+
+            # Execute the custom strategy code
+            exec(strategy_code, namespace)
+            df = namespace['df']
+        else:
+            # Use fixed strategy
+            df = apply_fixed_strategy_conditions(df)
+
+        # Create trader and run backtest
+        trader = CryptoMarginTrader(
+            initial_balance=initial_balance,
+            maxHoldMinutes=max_hold_minutes,
+            RiskToReward=risk_reward,
+            symbol_name=symbol,
+            strategy_name=strategy_name,
+            stoploss_percentage=stop_loss,
+            leverage=leverage,
+            trading_fee=trading_fee
+        )
+
+        trader.backtest(df, margin_per_trade=margin_per_trade)
+
+        # Get stats
+        stats = trader.get_performance_stats()
+
+        if not stats:
+            return jsonify({'error': 'No trades executed'}), 400
+
+        # Create images
+        balance_curve = create_balance_curve_image(trader)
+        trade_viz = create_trade_visualization_image(trader, df)
+
+        # Save to CSV
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        csv_filename = f'results/backtest_{symbol}_{timestamp}.csv'
+        trader.trade_book.to_csv(csv_filename, index=False)
+
+        # Convert trades to dict
+        trades_df = trader.trade_book.copy()
+        trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
+        trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        trades_data = trades_df.to_dict('records')
+
+        results = {
+            'stats': stats,
+            'balance_curve': balance_curve,
+            'trade_visualization': trade_viz,
+            'trades': trades_data,
+            'csv_filename': csv_filename,
+            'timestamp': timestamp
+        }
+
+        return render_template('results.html', **results)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

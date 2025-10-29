@@ -15,117 +15,100 @@
         </div>
 
         <!-- Summary Cards -->
-        <div class="cards-grid">
-            <div class="card highlight">
-                <div class="card-icon">💰</div>
-                <div class="card-content">
-                    <div class="card-label">Final Balance</div>
-                    <div class="card-value">${{ stats.final_balance }}</div>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+            <h2 style="font-size: 18px; margin-bottom: 15px; color: #2d3436; font-weight: 700;">📊 Summary</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c5ce7;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Final Balance</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">${{ stats.final_balance }}</div>
                 </div>
-            </div>
 
-            <div class="card {% if stats.total_return_pct >= 0 %}success{% else %}danger{% endif %}">
-                <div class="card-icon">📊</div>
-                <div class="card-content">
-                    <div class="card-label">Total Return</div>
-                    <div class="card-value">{{ stats.total_return_pct }}%</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid {% if stats.total_return_pct >= 0 %}#28a745{% else %}#dc3545{% endif %};">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Total Return</div>
+                    <div style="font-size: 16px; font-weight: 700; color: {% if stats.total_return_pct >= 0 %}#28a745{% else %}#dc3545{% endif %};">{{ stats.total_return_pct }}%</div>
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-icon">🎯</div>
-                <div class="card-content">
-                    <div class="card-label">Win Rate</div>
-                    <div class="card-value">{{ stats.win_rate }}%</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c5ce7;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Win Rate</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.win_rate }}%</div>
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-icon">📈</div>
-                <div class="card-content">
-                    <div class="card-label">Total Trades</div>
-                    <div class="card-value">{{ stats.total_trades }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #2d3436;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Total Trades</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.total_trades }}</div>
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-icon">✅</div>
-                <div class="card-content">
-                    <div class="card-label">Winning Trades</div>
-                    <div class="card-value">{{ stats.winning_trades }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #28a745;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Winning Trades</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #28a745;">{{ stats.winning_trades }}</div>
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-icon">❌</div>
-                <div class="card-content">
-                    <div class="card-label">Losing Trades</div>
-                    <div class="card-value">{{ stats.losing_trades }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #dc3545;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Losing Trades</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #dc3545;">{{ stats.losing_trades }}</div>
                 </div>
             </div>
         </div>
 
         <!-- Detailed Statistics -->
-        <div class="stats-section">
-            <h2>📊 Performance Statistics</h2>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">Initial Balance</div>
-                    <div class="stat-value">${{ stats.initial_balance }}</div>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+            <h2 style="font-size: 18px; margin-bottom: 15px; color: #2d3436; font-weight: 700;">📊 Performance Statistics</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c5ce7;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Initial Balance</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">${{ stats.initial_balance }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Total P&L</div>
-                    <div class="stat-value {% if stats.total_pnl >= 0 %}profit{% else %}loss{% endif %}">
-                        ${{ stats.total_pnl }}
-                    </div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid {% if stats.total_pnl >= 0 %}#28a745{% else %}#dc3545{% endif %};">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Total P&L</div>
+                    <div style="font-size: 16px; font-weight: 700; color: {% if stats.total_pnl >= 0 %}#28a745{% else %}#dc3545{% endif %};">${{ stats.total_pnl }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Avg Win</div>
-                    <div class="stat-value profit">${{ stats.avg_win }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #28a745;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Avg Win</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #28a745;">${{ stats.avg_win }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Avg Loss</div>
-                    <div class="stat-value loss">${{ stats.avg_loss }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #dc3545;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Avg Loss</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #dc3545;">${{ stats.avg_loss }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Max Win</div>
-                    <div class="stat-value profit">${{ stats.max_win }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #28a745;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Max Win</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #28a745;">${{ stats.max_win }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Max Loss</div>
-                    <div class="stat-value loss">${{ stats.max_loss }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #dc3545;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Max Loss</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #dc3545;">${{ stats.max_loss }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Max Drawdown</div>
-                    <div class="stat-value">{{ stats.max_drawdown }}%</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c5ce7;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Max Drawdown</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.max_drawdown }}%</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Leverage</div>
-                    <div class="stat-value">{{ stats.leverage }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c5ce7;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Leverage</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.leverage }}x</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Risk:Reward</div>
-                    <div class="stat-value">{{ stats.risk_reward }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #2d3436;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Risk:Reward</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.risk_reward }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Stop Loss %</div>
-                    <div class="stat-value">{{ stats.stop_loss_pct }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #2d3436;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Stop Loss %</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.stop_loss_pct }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Avg Holding Time</div>
-                    <div class="stat-value">{{ stats.avg_holding_minutes }} min</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #2d3436;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Avg Holding Time</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.avg_holding_minutes }} min</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Long Trades (Wins)</div>
-                    <div class="stat-value">{{ stats.long_trades }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #28a745;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Long Trades (Wins)</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.long_trades }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Short Trades (Wins)</div>
-                    <div class="stat-value">{{ stats.short_trades }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #dc3545;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Short Trades (Wins)</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">{{ stats.short_trades }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Total Fees</div>
-                    <div class="stat-value">${{ stats.total_fees }}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #2d3436;">
+                    <div style="font-size: 11px; color: #2d3436; margin-bottom: 4px;">Total Fees</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2d3436;">${{ stats.total_fees }}</div>
                 </div>
             </div>
         </div>
@@ -151,40 +134,60 @@
 
         <!-- Trades Table -->
         <div class="table-section">
-            <h2>📋 Trade History</h2>
-            <div class="table-container">
-                <table class="trades-table">
+            <h2>📋 Trade History (All Fields)</h2>
+            <div style="overflow-x: auto; background: #fff; border: 1px solid #dee2e6; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1200px;">
                     <thead>
-                        <tr>
-                            <th>Side</th>
-                            <th>Entry Price</th>
-                            <th>Exit Price</th>
-                            <th>Entry Time</th>
-                            <th>Exit Time</th>
-                            <th>P&L</th>
-                            <th>P&L %</th>
-                            <th>Exit Reason</th>
+                        <tr style="background: #6c757d; color: white;">
+                            {% if trades and trades|length > 0 %}
+                                {% for key in trades[0].keys() %}
+                                <th style="padding: 12px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; position: sticky; top: 0; background: #6c757d;">
+                                    {{ key }}
+                                </th>
+                                {% endfor %}
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for trade in trades %}
-                        <tr class="{% if trade.Status == 'OPEN' %}open-trade{% elif trade.RealizedPnL > 0 %}profit-trade{% else %}loss-trade{% endif %}">
-                            <td>{{ trade.Side }}</td>
-                            <td>${{ "{:.4f}".format(trade.EntryPrice) }}</td>
-                            <td>{% if trade.ExitPrice %}${{ "{:.4f}".format(trade.ExitPrice) }}{% else %}--{% endif %}</td>
-                            <td>{{ trade.EntryTime }}</td>
-                            <td>{% if trade.ExitTime %}{{ trade.ExitTime }}{% else %}--{% endif %}</td>
-                            <td class="{% if trade.RealizedPnL > 0 %}profit{% else %}loss{% endif %}">
-                                {% if trade.RealizedPnL %}${{ "{:.2f}".format(trade.RealizedPnL) }}{% else %}--{% endif %}
+                        <tr style="{% if loop.index % 2 == 0 %}background: #f8f9fa;{% else %}background: white;{% endif %} transition: all 0.2s;"
+                            onmouseover="this.style.background='#e3f2fd'"
+                            onmouseout="this.style.background='{% if loop.index % 2 == 0 %}#f8f9fa{% else %}white{% endif %}'">
+                            {% for key, value in trade.items() %}
+                            <td style="padding: 10px; border-bottom: 1px solid #dee2e6; white-space: nowrap;
+                                {% if key == 'RealizedPnL' or key == 'PnL%' %}
+                                    {% if value and value > 0 %}color: #28a745; font-weight: 600;
+                                    {% elif value and value < 0 %}color: #dc3545; font-weight: 600;
+                                    {% endif %}
+                                {% elif key == 'Side' %}
+                                    {% if value == 'LONG' %}color: #28a745; font-weight: 600;
+                                    {% elif value == 'SHORT' %}color: #dc3545; font-weight: 600;
+                                    {% endif %}
+                                {% elif key == 'Status' %}
+                                    {% if value == 'CLOSED' %}color: #6c757d; font-weight: 600;
+                                    {% elif value == 'OPEN' %}color: #007bff; font-weight: 600;
+                                    {% endif %}
+                                {% endif %}">
+                                {% if value is number %}
+                                    {% if key in ['PnL%'] %}
+                                        {{ "{:.2f}".format(value) }}%
+                                    {% elif key in ['Leverage', 'HoldingMinutes'] %}
+                                        {{ value|int }}
+                                    {% else %}
+                                        {{ "{:.2f}".format(value) }}
+                                    {% endif %}
+                                {% else %}
+                                    {{ value or '--' }}
+                                {% endif %}
                             </td>
-                            <td class="{% if trade['PnL%'] > 0 %}profit{% else %}loss{% endif %}">
-                                {% if trade['PnL%'] %}{{ "{:.2f}".format(trade['PnL%']) }}%{% else %}--{% endif %}
-                            </td>
-                            <td>{{ trade.ExitReason or '--' }}</td>
+                            {% endfor %}
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div style="margin-top: 10px; color: #6c757d; font-size: 12px;">
+                <p>💡 Tip: Scroll horizontally to view all columns. Table shows all {{ trades|length }} trades with complete details.</p>
             </div>
         </div>
 
