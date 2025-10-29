@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import ta
+import pandas_ta as ta
 import os
 import base64
 from io import BytesIO
@@ -41,7 +41,7 @@ def download_and_process_data(symbol, period, interval):
     ema_list = [9, 15]
     for ema_length in ema_list:
         ema_name = f'{ema_length}EMA'
-        df[ema_name] = ta.trend.EMAIndicator(close=df['Close'], window=ema_length, fillna=False).ema_indicator()
+        df[ema_name] = ta.ema(df['Close'], length=ema_length)
 
     # No RSI needed for fixed strategy
 

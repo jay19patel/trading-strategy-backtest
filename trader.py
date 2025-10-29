@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-import ta
+import pandas_ta as ta
 
 
 class CryptoMarginTrader:
