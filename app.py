@@ -598,12 +598,27 @@ def save_custom_strategy():
         if not strategy_code:
             return jsonify({'error': 'No strategy code provided'}), 400
 
-        # Save strategy to file
-        strategy_file = 'custom_strategy.py'
+        # Save strategy to txt file to avoid Python import issues
+        strategy_file = 'custom_strategy.txt'
         with open(strategy_file, 'w') as f:
             f.write(strategy_code)
 
         return jsonify({'success': True, 'message': 'Strategy saved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/load_custom_strategy', methods=['GET'])
+def load_custom_strategy():
+    """Load saved custom strategy code"""
+    try:
+        strategy_file = 'custom_strategy.txt'
+        if os.path.exists(strategy_file):
+            with open(strategy_file, 'r') as f:
+                strategy_code = f.read()
+            return jsonify({'success': True, 'strategy_code': strategy_code})
+        else:
+            return jsonify({'success': False, 'message': 'No saved strategy found'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -643,16 +658,24 @@ def run_backtest_custom():
 
         # Apply custom strategy if provided, otherwise use fixed
         if strategy_code:
-            # Create a safe namespace for executing strategy
-            namespace = {
-                'df': df,
-                'pd': pd,
-                'np': np
-            }
+            try:
+                # Create a safe namespace for executing strategy
+                namespace = {
+                    'df': df,
+                    'pd': pd,
+                    'np': np,
+                    'ta': ta
+                }
 
-            # Execute the custom strategy code
-            exec(strategy_code, namespace)
-            df = namespace['df']
+                # Execute the custom strategy code
+                exec(strategy_code, namespace)
+                df = namespace['df']
+
+                # Validate that Action column exists
+                if 'Action' not in df.columns:
+                    return jsonify({'error': 'Strategy code must create an "Action" column in the DataFrame'}), 400
+            except Exception as e:
+                return jsonify({'error': f'Strategy execution error: {str(e)}'}), 400
         else:
             # Use fixed strategy
             df = apply_fixed_strategy_conditions(df)

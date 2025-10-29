@@ -114,6 +114,9 @@
                     <button type="button" id="load-data-btn" class="btn-secondary" style="margin-bottom: 10px;">
                         📊 Load DataFrame Info
                     </button>
+                    <button type="button" id="load-strategy-btn" class="btn-secondary" style="margin-bottom: 10px; margin-left: 10px;">
+                        📂 Load Saved Strategy
+                    </button>
                     <small style="display: block; color: #6c757d;">Click to see available columns and preview last 3 rows</small>
                 </div>
 
@@ -336,6 +339,24 @@ else:
         <p>Built with Flask & Python | Advanced Backtesting Engine</p>
     </div>
 
+    <!-- Error Modal -->
+    <div id="errorModal" class="error-modal">
+        <div class="error-modal-content">
+            <div class="error-icon">⚠️</div>
+            <h2>Error</h2>
+            <p id="errorMessage">Something went wrong!</p>
+            <button class="error-close-btn" onclick="closeErrorModal()">OK</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Running Backtest...</p>
+        </div>
+    </div>
+
     <script>
         // Load DataFrame Info
         document.getElementById('load-data-btn').addEventListener('click', async function() {
@@ -399,13 +420,50 @@ else:
 
                     document.getElementById('preview-section').style.display = 'block';
                 } else {
-                    alert('Error: ' + data.error);
+                    showErrorModal(data.error || 'Failed to load DataFrame info');
                 }
             } catch (error) {
-                alert('Error loading data: ' + error.message);
+                showErrorModal('Error loading data: ' + error.message);
             } finally {
                 this.disabled = false;
                 this.textContent = '📊 Load DataFrame Info';
+            }
+        });
+
+        // Load Saved Strategy
+        document.getElementById('load-strategy-btn').addEventListener('click', async function() {
+            const statusSpan = document.getElementById('save-status');
+
+            this.disabled = true;
+            this.textContent = '⏳ Loading...';
+
+            try {
+                const response = await fetch('/load_custom_strategy', {
+                    method: 'GET'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    document.getElementById('strategy-code').value = data.strategy_code;
+                    statusSpan.textContent = '✅ Strategy loaded!';
+                    statusSpan.style.color = '#28a745';
+                    setTimeout(() => {
+                        statusSpan.textContent = '';
+                    }, 3000);
+                } else {
+                    statusSpan.textContent = '⚠️ ' + (data.message || 'No saved strategy found');
+                    statusSpan.style.color = '#ffc107';
+                    setTimeout(() => {
+                        statusSpan.textContent = '';
+                    }, 3000);
+                }
+            } catch (error) {
+                statusSpan.textContent = '❌ Error: ' + error.message;
+                statusSpan.style.color = '#dc3545';
+            } finally {
+                this.disabled = false;
+                this.textContent = '📂 Load Saved Strategy';
             }
         });
 
@@ -636,6 +694,65 @@ else:
                 });
             });
         }
+
+        // Error Modal Functions
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').style.display = 'block';
+        }
+
+        function closeErrorModal() {
+            document.getElementById('errorModal').style.display = 'none';
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('errorModal');
+            if (event.target === modal) {
+                closeErrorModal();
+            }
+        }
+
+        // Form Submit Handler
+        document.querySelector('.backtest-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            showLoading();
+
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch('/backtest_custom', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                hideLoading();
+
+                if (response.ok) {
+                    // If successful, the server will return HTML
+                    const html = await response.text();
+                    document.open();
+                    document.write(html);
+                    document.close();
+                } else {
+                    // If error, parse JSON error message
+                    const data = await response.json();
+                    showErrorModal(data.error || 'An error occurred during backtest');
+                }
+            } catch (error) {
+                hideLoading();
+                showErrorModal('Network error: ' + error.message);
+            }
+        });
     </script>
 </body>
 </html>
