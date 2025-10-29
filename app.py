@@ -473,6 +473,7 @@ def run_backtest():
         trades_df = trader.trade_book.copy()
         trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
         trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
 
         # Combine all results
@@ -577,6 +578,9 @@ def get_dataframe_info():
         for col in last_3_rows.columns:
             if pd.api.types.is_datetime64_any_dtype(last_3_rows[col]):
                 last_3_rows[col] = last_3_rows[col].astype(str)
+
+        # Replace NaN with None for JSON serialization
+        last_3_rows = last_3_rows.replace({np.nan: None})
 
         # Convert to dict
         preview_data = last_3_rows.to_dict('records')
@@ -713,6 +717,7 @@ def run_backtest_custom():
         trades_df = trader.trade_book.copy()
         trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
         trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
 
         results = {
@@ -887,6 +892,7 @@ def view_backtest(filename):
         trades_df = df.copy()
         trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
         trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
         
         return render_template('results.html',
