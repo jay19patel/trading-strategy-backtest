@@ -40,9 +40,15 @@
                                 ${{ backtest.total_pnl }}
                             </td>
                             <td>
-                                <a href="/view_backtest/{{ backtest.filename }}" class="btn-primary" style="padding: 8px 16px; font-size: 14px;">
-                                    View Analysis
-                                </a>
+                                {% if backtest.type == 'saved' %}
+                                    <a href="/view_saved_backtest/{{ backtest.backtest_id }}" class="btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                                        View Analysis
+                                    </a>
+                                {% else %}
+                                    <a href="/view_backtest/{{ backtest.filename }}" class="btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                                        View Analysis
+                                    </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

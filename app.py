@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas_ta as ta
 import os
+import json
 import base64
 from io import BytesIO
 from trader import CryptoMarginTrader
@@ -19,6 +20,12 @@ app.config['UPLOAD_FOLDER'] = 'results'
 
 # Ensure results directory exists
 os.makedirs('results', exist_ok=True)
+os.makedirs('saved_strategies', exist_ok=True)
+os.makedirs('saved_backtests', exist_ok=True)
+
+# File paths
+STRATEGIES_FILE = 'saved_strategies/strategies.json'
+BACKTESTS_FILE = 'saved_backtests/backtests.json'
 
 
 def download_and_process_data(symbol, period, interval):
@@ -464,10 +471,8 @@ def run_backtest():
         balance_curve = create_balance_curve_image(trader)
         trade_viz = create_trade_visualization_image(trader, df)
 
-        # Save to CSV
+        # Do not save anything on run; only generate a timestamp for display
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        csv_filename = f'results/backtest_{symbol}_{timestamp}.csv'
-        trader.trade_book.to_csv(csv_filename, index=False)
 
         # Convert trades to dict for JSON
         trades_df = trader.trade_book.copy()
@@ -476,13 +481,12 @@ def run_backtest():
         trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
 
-        # Combine all results
+        # Combine all results (no csv filename)
         results = {
             'stats': stats,
             'balance_curve': balance_curve,
             'trade_visualization': trade_viz,
             'trades': trades_data,
-            'csv_filename': csv_filename,
             'timestamp': timestamp
         }
 
@@ -492,57 +496,91 @@ def run_backtest():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/download/<filename>')
-def download_file(filename):
-    """Download results CSV file"""
-    return send_file(f'results/{filename}', as_attachment=True)
-
-
 @app.route('/history')
 def view_history():
-    """Display list of all historical backtests"""
+    """Display list of all historical backtests (CSV and saved)"""
     try:
         # Get all CSV files in results directory
         files = []
-        for filename in os.listdir('results'):
-            if filename.startswith('backtest_') and filename.endswith('.csv'):
-                # Parse filename: backtest_SYMBOL_TIMESTAMP.csv
-                # Remove 'backtest_' prefix and '.csv' suffix
-                clean_name = filename.replace('backtest_', '').replace('.csv', '')
-                # Split from the right to handle symbols with dashes (e.g., BTC-USD, SHIB-USD)
-                parts = clean_name.rsplit('_', 2)
-                if len(parts) == 3:
-                    symbol = parts[0]
-                    date_str = parts[1]
-                    time_str = parts[2]
-                    
-                    # Format date and time
-                    date_obj = datetime.strptime(date_str + '_' + time_str, '%Y%m%d_%H%M%S')
-                    
-                    # Read CSV to get stats
-                    df = pd.read_csv(f'results/{filename}')
-                    closed_trades = df[df['Status'] == 'CLOSED']
-                    
-                    if len(closed_trades) > 0:
-                        total_trades = len(closed_trades)
-                        winning_trades = len(closed_trades[closed_trades['RealizedPnL'] > 0])
-                        win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0
-                        total_pnl = closed_trades['RealizedPnL'].sum()
+        if os.path.exists('results'):
+            for filename in os.listdir('results'):
+                if filename.startswith('backtest_') and filename.endswith('.csv'):
+                    # Parse filename: backtest_SYMBOL_TIMESTAMP.csv
+                    # Remove 'backtest_' prefix and '.csv' suffix
+                    clean_name = filename.replace('backtest_', '').replace('.csv', '')
+                    # Split from the right to handle symbols with dashes (e.g., BTC-USD, SHIB-USD)
+                    parts = clean_name.rsplit('_', 2)
+                    if len(parts) == 3:
+                        symbol = parts[0]
+                        date_str = parts[1]
+                        time_str = parts[2]
                         
-                        files.append({
-                            'filename': filename,
-                            'symbol': symbol,
-                            'date': date_obj.strftime('%Y-%m-%d'),
-                            'time': date_obj.strftime('%H:%M:%S'),
-                            'total_trades': total_trades,
-                            'win_rate': round(win_rate, 2),
-                            'total_pnl': round(total_pnl, 2)
-                        })
+                        # Format date and time
+                        date_obj = datetime.strptime(date_str + '_' + time_str, '%Y%m%d_%H%M%S')
+                        
+                        # Read CSV to get stats
+                        try:
+                            df = pd.read_csv(f'results/{filename}')
+                            closed_trades = df[df['Status'] == 'CLOSED']
+                            
+                            if len(closed_trades) > 0:
+                                total_trades = len(closed_trades)
+                                winning_trades = len(closed_trades[closed_trades['RealizedPnL'] > 0])
+                                win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0
+                                total_pnl = closed_trades['RealizedPnL'].sum()
+                                
+                                files.append({
+                                    'filename': filename,
+                                    'symbol': symbol,
+                                    'date': date_obj.strftime('%Y-%m-%d'),
+                                    'time': date_obj.strftime('%H:%M:%S'),
+                                    'total_trades': total_trades,
+                                    'win_rate': round(win_rate, 2),
+                                    'total_pnl': round(total_pnl, 2),
+                                    'type': 'csv'
+                                })
+                        except:
+                            pass
         
-        # Sort by date and time (most recent first)
-        files.sort(key=lambda x: (x['date'], x['time']), reverse=True)
+        # Get saved backtests
+        saved_backtests = []
+        if os.path.exists(BACKTESTS_FILE):
+            try:
+                with open(BACKTESTS_FILE, 'r') as f:
+                    backtests = json.load(f)
+                
+                for bt in backtests:
+                    settings = bt.get('trading_settings', {})
+                    stats = bt.get('stats', {})
+                    saved_at = bt.get('saved_at', '')
+                    
+                    try:
+                        if saved_at:
+                            date_obj = datetime.fromisoformat(saved_at.replace('Z', '+00:00'))
+                            if date_obj.tzinfo:
+                                date_obj = date_obj.replace(tzinfo=None)
+                    except:
+                        date_obj = datetime.now()
+                    
+                    saved_backtests.append({
+                        'filename': '',  # No filename for saved backtests
+                        'backtest_id': bt.get('id'),
+                        'symbol': settings.get('symbol', 'N/A'),
+                        'date': date_obj.strftime('%Y-%m-%d') if isinstance(date_obj, datetime) else saved_at[:10] if saved_at else '',
+                        'time': date_obj.strftime('%H:%M:%S') if isinstance(date_obj, datetime) else saved_at[11:19] if saved_at and len(saved_at) > 11 else '',
+                        'total_trades': stats.get('total_trades', 0),
+                        'win_rate': round(stats.get('win_rate', 0), 2),
+                        'total_pnl': round(stats.get('total_pnl', 0), 2),
+                        'type': 'saved'
+                    })
+            except:
+                pass
         
-        return render_template('history.html', backtests=files)
+        # Combine and sort by date and time (most recent first)
+        all_backtests = files + saved_backtests
+        all_backtests.sort(key=lambda x: (x['date'], x['time']), reverse=True)
+        
+        return render_template('history.html', backtests=all_backtests)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -595,34 +633,101 @@ def get_dataframe_info():
 
 @app.route('/save_custom_strategy', methods=['POST'])
 def save_custom_strategy():
-    """Save custom strategy code"""
+    """Save custom strategy with trading settings"""
     try:
         strategy_code = request.json.get('strategy_code', '')
+        strategy_name = request.json.get('strategy_name', 'Unnamed Strategy')
+        trading_settings = request.json.get('trading_settings', {})
 
         if not strategy_code:
             return jsonify({'error': 'No strategy code provided'}), 400
 
-        # Save strategy to txt file to avoid Python import issues
+        # Load existing strategies
+        strategies = []
+        if os.path.exists(STRATEGIES_FILE):
+            try:
+                with open(STRATEGIES_FILE, 'r') as f:
+                    strategies = json.load(f)
+            except:
+                strategies = []
+
+        # Create new strategy entry
+        strategy_entry = {
+            'id': datetime.now().strftime('%Y%m%d_%H%M%S'),
+            'name': strategy_name,
+            'code': strategy_code,
+            'settings': trading_settings,
+            'created_at': datetime.now().isoformat()
+        }
+
+        # Add or update strategy
+        strategies.append(strategy_entry)
+
+        # Save to JSON file
+        with open(STRATEGIES_FILE, 'w') as f:
+            json.dump(strategies, f, indent=2)
+
+        # Also save to txt file for backward compatibility
         strategy_file = 'custom_strategy.txt'
         with open(strategy_file, 'w') as f:
             f.write(strategy_code)
 
-        return jsonify({'success': True, 'message': 'Strategy saved successfully'})
+        return jsonify({'success': True, 'message': 'Strategy saved successfully', 'strategy_id': strategy_entry['id']})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
 @app.route('/load_custom_strategy', methods=['GET'])
 def load_custom_strategy():
-    """Load saved custom strategy code"""
+    """Load saved custom strategy code - returns list of strategies"""
     try:
-        strategy_file = 'custom_strategy.txt'
-        if os.path.exists(strategy_file):
-            with open(strategy_file, 'r') as f:
-                strategy_code = f.read()
-            return jsonify({'success': True, 'strategy_code': strategy_code})
-        else:
-            return jsonify({'success': False, 'message': 'No saved strategy found'})
+        # Load from JSON file
+        strategies = []
+        if os.path.exists(STRATEGIES_FILE):
+            try:
+                with open(STRATEGIES_FILE, 'r') as f:
+                    strategies = json.load(f)
+            except:
+                strategies = []
+
+        # If no JSON strategies, try to load from txt file for backward compatibility
+        if not strategies:
+            strategy_file = 'custom_strategy.txt'
+            if os.path.exists(strategy_file):
+                with open(strategy_file, 'r') as f:
+                    strategy_code = f.read()
+                return jsonify({
+                    'success': True,
+                    'strategy_code': strategy_code,
+                    'strategies': [],
+                    'legacy': True
+                })
+
+        return jsonify({'success': True, 'strategies': strategies})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/load_strategy/<strategy_id>', methods=['GET'])
+def load_strategy_by_id(strategy_id):
+    """Load a specific strategy by ID"""
+    try:
+        if not os.path.exists(STRATEGIES_FILE):
+            return jsonify({'error': 'No strategies found'}), 404
+
+        with open(STRATEGIES_FILE, 'r') as f:
+            strategies = json.load(f)
+
+        strategy = next((s for s in strategies if s['id'] == strategy_id), None)
+        if not strategy:
+            return jsonify({'error': 'Strategy not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'strategy_code': strategy['code'],
+            'settings': strategy.get('settings', {}),
+            'name': strategy.get('name', 'Unnamed Strategy')
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -708,10 +813,8 @@ def run_backtest_custom():
         balance_curve = create_balance_curve_image(trader)
         trade_viz = create_trade_visualization_image(trader, df)
 
-        # Save to CSV
+        # Do not save anything on run; only generate a timestamp for display
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        csv_filename = f'results/backtest_{symbol}_{timestamp}.csv'
-        trader.trade_book.to_csv(csv_filename, index=False)
 
         # Convert trades to dict
         trades_df = trader.trade_book.copy()
@@ -720,17 +823,149 @@ def run_backtest_custom():
         trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
 
+        # Prepare trading settings
+        trading_settings = {
+            'symbol': symbol,
+            'initial_balance': initial_balance,
+            'max_hold_hours': max_hold_hours,
+            'risk_reward': risk_reward,
+            'stop_loss': stop_loss,
+            'leverage': leverage,
+            'trading_fee': trading_fee,
+            'margin_per_trade': margin_per_trade,
+            'period': period,
+            'interval': interval,
+            'strategy_name': strategy_name
+        }
+
         results = {
             'stats': stats,
             'balance_curve': balance_curve,
             'trade_visualization': trade_viz,
             'trades': trades_data,
-            'csv_filename': csv_filename,
-            'timestamp': timestamp
+            'timestamp': timestamp,
+            'strategy_code': strategy_code,
+            'trading_settings': trading_settings,
+            'backtest_id': timestamp  # Use timestamp as unique ID
         }
 
         return render_template('results.html', **results)
 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/save_backtest', methods=['POST'])
+def save_backtest():
+    """Save backtest results with settings, code, results, and pandas data"""
+    try:
+        data = request.json
+        
+        # Get all required data
+        strategy_code = data.get('strategy_code', '')
+        trading_settings = data.get('trading_settings', {})
+        trades = data.get('trades', [])
+        stats = data.get('stats', {})
+        balance_curve = data.get('balance_curve', '')
+        trade_visualization = data.get('trade_visualization', '')
+        backtest_id = data.get('backtest_id', datetime.now().strftime('%Y%m%d_%H%M%S'))
+        
+        # Load existing backtests
+        backtests = []
+        if os.path.exists(BACKTESTS_FILE):
+            try:
+                with open(BACKTESTS_FILE, 'r') as f:
+                    backtests = json.load(f)
+            except:
+                backtests = []
+        
+        # Create backtest entry
+        backtest_entry = {
+            'id': backtest_id,
+            'strategy_code': strategy_code,
+            'trading_settings': trading_settings,
+            'trades': trades,
+            'stats': stats,
+            'balance_curve': balance_curve,
+            'trade_visualization': trade_visualization,
+            'saved_at': datetime.now().isoformat()
+        }
+        
+        # Check if backtest with same ID exists and update it
+        existing_index = next((i for i, b in enumerate(backtests) if b.get('id') == backtest_id), None)
+        if existing_index is not None:
+            backtests[existing_index] = backtest_entry
+        else:
+            backtests.append(backtest_entry)
+        
+        # Save to JSON file
+        with open(BACKTESTS_FILE, 'w') as f:
+            json.dump(backtests, f, indent=2)
+        
+        return jsonify({'success': True, 'message': 'Backtest saved successfully', 'backtest_id': backtest_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get_saved_backtests', methods=['GET'])
+def get_saved_backtests():
+    """Get list of all saved backtests"""
+    try:
+        backtests = []
+        if os.path.exists(BACKTESTS_FILE):
+            try:
+                with open(BACKTESTS_FILE, 'r') as f:
+                    backtests = json.load(f)
+            except:
+                backtests = []
+        
+        # Return only summary info for list view
+        summaries = []
+        for bt in backtests:
+            settings = bt.get('trading_settings', {})
+            stats = bt.get('stats', {})
+            summaries.append({
+                'id': bt.get('id'),
+                'symbol': settings.get('symbol', 'N/A'),
+                'strategy_name': settings.get('strategy_name', 'N/A'),
+                'date': bt.get('saved_at', '')[:10] if bt.get('saved_at') else '',
+                'time': bt.get('saved_at', '')[11:19] if bt.get('saved_at') else '',
+                'total_trades': stats.get('total_trades', 0),
+                'win_rate': stats.get('win_rate', 0),
+                'total_pnl': stats.get('total_pnl', 0)
+            })
+        
+        return jsonify({'success': True, 'backtests': summaries})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/view_saved_backtest/<backtest_id>')
+def view_saved_backtest(backtest_id):
+    """View a saved backtest with full details"""
+    try:
+        if not os.path.exists(BACKTESTS_FILE):
+            return jsonify({'error': 'No saved backtests found'}), 404
+        
+        with open(BACKTESTS_FILE, 'r') as f:
+            backtests = json.load(f)
+        
+        backtest = next((b for b in backtests if b.get('id') == backtest_id), None)
+        if not backtest:
+            return jsonify({'error': 'Backtest not found'}), 404
+        
+        # Render results template with saved data
+        return render_template('results.html',
+                            stats=backtest.get('stats', {}),
+                            balance_curve=backtest.get('balance_curve', ''),
+                            trade_visualization=backtest.get('trade_visualization', ''),
+                            trades=backtest.get('trades', []),
+                            csv_filename='',  # No CSV for saved backtests
+                            timestamp=backtest.get('saved_at', ''),
+                            strategy_code=backtest.get('strategy_code', ''),
+                            trading_settings=backtest.get('trading_settings', {}),
+                            backtest_id=backtest_id,
+                            is_saved=True)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

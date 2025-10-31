@@ -141,9 +141,23 @@
                         <tr style="background: #6c757d; color: white;">
                             {% if trades and trades|length > 0 %}
                                 {% for key in trades[0].keys() %}
-                                <th style="padding: 12px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; position: sticky; top: 0; background: #6c757d;">
-                                    {{ key }}
-                                </th>
+                                    {% if key in ['MarginUsed', 'ExitReason'] %}
+                                        {# skip original positions; will insert near Status/PositionSize #}
+                                    {% else %}
+                                        <th style="padding: 12px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; position: sticky; top: 0; background: #6c757d;">
+                                            {{ key }}
+                                        </th>
+                                        {% if key == 'Status' and 'MarginUsed' in trades[0] %}
+                                            <th style="padding: 12px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; position: sticky; top: 0; background: #6c757d;">
+                                                MarginUsed
+                                            </th>
+                                        {% endif %}
+                                        {% if key == 'PositionSize' and 'ExitReason' in trades[0] %}
+                                            <th style="padding: 12px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; position: sticky; top: 0; background: #6c757d;">
+                                                ExitReason
+                                            </th>
+                                        {% endif %}
+                                    {% endif %}
                                 {% endfor %}
                             {% endif %}
                         </tr>
@@ -154,32 +168,54 @@
                             onmouseover="this.style.background='#e3f2fd'"
                             onmouseout="this.style.background='{% if loop.index % 2 == 0 %}#f8f9fa{% else %}white{% endif %}'">
                             {% for key, value in trade.items() %}
-                            <td style="padding: 10px; border-bottom: 1px solid #dee2e6; white-space: nowrap;
-                                {% if key == 'RealizedPnL' or key == 'PnL%' %}
-                                    {% if value and value > 0 %}color: #28a745; font-weight: 600;
-                                    {% elif value and value < 0 %}color: #dc3545; font-weight: 600;
-                                    {% endif %}
-                                {% elif key == 'Side' %}
-                                    {% if value == 'LONG' %}color: #28a745; font-weight: 600;
-                                    {% elif value == 'SHORT' %}color: #dc3545; font-weight: 600;
-                                    {% endif %}
-                                {% elif key == 'Status' %}
-                                    {% if value == 'CLOSED' %}color: #6c757d; font-weight: 600;
-                                    {% elif value == 'OPEN' %}color: #007bff; font-weight: 600;
-                                    {% endif %}
-                                {% endif %}">
-                                {% if value is number %}
-                                    {% if key in ['PnL%'] %}
-                                        {{ "{:.2f}".format(value) }}%
-                                    {% elif key in ['Leverage', 'HoldingMinutes'] %}
-                                        {{ value|int }}
-                                    {% else %}
-                                        {{ "{:.2f}".format(value) }}
-                                    {% endif %}
+                                {% if key in ['MarginUsed', 'ExitReason'] %}
+                                    {# skip original positions; will insert near Status/PositionSize #}
                                 {% else %}
-                                    {{ value or '--' }}
+                                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; white-space: nowrap;
+                                        {% if key == 'RealizedPnL' or key == 'PnL%' %}
+                                            {% if value and value > 0 %}color: #28a745; font-weight: 600;
+                                            {% elif value and value < 0 %}color: #dc3545; font-weight: 600;
+                                            {% endif %}
+                                        {% elif key == 'Side' %}
+                                            {% if value == 'LONG' %}color: #28a745; font-weight: 600;
+                                            {% elif value == 'SHORT' %}color: #dc3545; font-weight: 600;
+                                            {% endif %}
+                                        {% elif key == 'Status' %}
+                                            {% if value == 'CLOSED' %}color: #6c757d; font-weight: 600;
+                                            {% elif value == 'OPEN' %}color: #007bff; font-weight: 600;
+                                            {% endif %}
+                                        {% endif %}">
+                                        {% if value is number %}
+                                            {% if key in ['PnL%'] %}
+                                                {{ "{:.2f}".format(value) }}%
+                                            {% elif key in ['Leverage', 'HoldingMinutes'] %}
+                                                {{ value|int }}
+                                            {% else %}
+                                                {{ "{:.2f}".format(value) }}
+                                            {% endif %}
+                                        {% else %}
+                                            {{ value or '--' }}
+                                        {% endif %}
+                                    </td>
+
+                                    {% if key == 'Status' and 'MarginUsed' in trade %}
+                                        {% set mu_value = trade['MarginUsed'] %}
+                                        <td style="padding: 10px; border-bottom: 1px solid #dee2e6; white-space: nowrap;">
+                                            {% if mu_value is number %}
+                                                {{ "{:.2f}".format(mu_value) }}
+                                            {% else %}
+                                                {{ mu_value or '--' }}
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
+
+                                    {% if key == 'PositionSize' and 'ExitReason' in trade %}
+                                        {% set er_value = trade['ExitReason'] %}
+                                        <td style="padding: 10px; border-bottom: 1px solid #dee2e6; white-space: nowrap;">
+                                            {{ er_value or '--' }}
+                                        </td>
+                                    {% endif %}
                                 {% endif %}
-                            </td>
                             {% endfor %}
                         </tr>
                         {% endfor %}
@@ -195,15 +231,76 @@
         <div class="actions-section">
             <a href="/" class="btn-secondary">← New Backtest</a>
             <a href="/history" class="btn-secondary" style="margin: 0 10px;">📜 View History</a>
-            <a href="/download/{{ csv_filename.split('/')[-1] }}" class="btn-primary" download>
-                📥 Download CSV
-            </a>
+            {% if not is_saved %}
+            <button id="save-backtest-btn" class="btn-primary" onclick="saveBacktest()">
+                💾 Save This Backtest
+            </button>
+            <span id="save-backtest-status" style="margin-left: 10px; font-weight: 600;"></span>
+            {% endif %}
         </div>
     </div>
 
     <div class="footer">
         <p>Backtest completed at {{ timestamp }}</p>
     </div>
+
+    <script>
+        // Store backtest data for saving
+        const backtestData = {
+            strategy_code: {{ strategy_code|tojson|safe if strategy_code else '""' }},
+            trading_settings: {{ trading_settings|tojson|safe if trading_settings else '{}' }},
+            trades: {{ trades|tojson|safe if trades else '[]' }},
+            stats: {{ stats|tojson|safe if stats else '{}' }},
+            balance_curve: {{ balance_curve|tojson|safe if balance_curve else '""' }},
+            trade_visualization: {{ trade_visualization|tojson|safe if trade_visualization else '""' }},
+            backtest_id: {{ backtest_id|tojson|safe if backtest_id else '""' }}
+        };
+
+        async function saveBacktest() {
+            const btn = document.getElementById('save-backtest-btn');
+            const status = document.getElementById('save-backtest-status');
+            
+            if (btn) btn.disabled = true;
+            if (status) {
+                status.textContent = '⏳ Saving...';
+                status.style.color = '#007bff';
+            }
+
+            try {
+                const response = await fetch('/save_backtest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(backtestData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    if (status) {
+                        status.textContent = '✅ Backtest saved successfully!';
+                        status.style.color = '#28a745';
+                    }
+                    setTimeout(() => {
+                        if (status) status.textContent = '';
+                    }, 3000);
+                } else {
+                    if (status) {
+                        status.textContent = '❌ Error: ' + (data.error || 'Failed to save');
+                        status.style.color = '#dc3545';
+                    }
+                }
+            } catch (error) {
+                if (status) {
+                    status.textContent = '❌ Error: ' + error.message;
+                    status.style.color = '#dc3545';
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+    </script>
 </body>
 </html>
 

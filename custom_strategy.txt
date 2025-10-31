@@ -1,6 +1,8 @@
 
-target = 0.01      # 4% profit target
-stoploss = 0.005     # 2% stoploss
+
+
+target = 0.04      # 4% profit target
+stoploss = 0.02     # 2% stoploss
 window = 15         # look ahead next 15 candles
 
 # --- Compute future highs/lows safely (no lookahead bias) ---
@@ -20,3 +22,5 @@ sell_condition = (
 
 # --- Assign Actions ---
 df['Action'] = np.select([buy_condition, sell_condition], ['buy', 'sell'], default=None)
+
+

@@ -114,10 +114,15 @@
                     <button type="button" id="load-data-btn" class="btn-secondary" style="margin-bottom: 10px;">
                         📊 Load DataFrame Info
                     </button>
-                    <button type="button" id="load-strategy-btn" class="btn-secondary" style="margin-bottom: 10px; margin-left: 10px;">
-                        📂 Load Saved Strategy
-                    </button>
-                    <small style="display: block; color: #6c757d;">Click to see available columns and preview last 3 rows</small>
+                    <div style="display: inline-block; margin-left: 10px; position: relative;">
+                        <select id="strategy-select" style="padding: 8px 30px 8px 10px; font-size: 13px; border: 1px solid #ced4da; border-radius: 5px; margin-bottom: 10px; min-width: 250px;">
+                            <option value="">-- Select Saved Strategy --</option>
+                        </select>
+                        <button type="button" id="load-strategy-btn" class="btn-secondary" style="margin-bottom: 10px; margin-left: 5px;">
+                            📂 Load Selected
+                        </button>
+                    </div>
+                    <small style="display: block; color: #6c757d; margin-top: 5px;">Select a saved strategy and click Load to load both code and settings</small>
                 </div>
 
                 <!-- Available Columns -->
@@ -422,23 +427,99 @@ df['Action'] = np.select([buy_condition, sell_condition], ['buy', 'sell'], defau
             }
         });
 
-        // Load Saved Strategy
-        document.getElementById('load-strategy-btn').addEventListener('click', async function() {
-            const statusSpan = document.getElementById('save-status');
-
-            this.disabled = true;
-            this.textContent = '⏳ Loading...';
-
+        // Load strategies on page load
+        async function loadStrategies() {
             try {
                 const response = await fetch('/load_custom_strategy', {
                     method: 'GET'
                 });
 
                 const data = await response.json();
+                const select = document.getElementById('strategy-select');
+                
+                if (response.ok && data.success) {
+                    // Clear existing options except the first one
+                    select.innerHTML = '<option value="">-- Select Saved Strategy --</option>';
+                    
+                    // Add strategies to dropdown
+                    if (data.strategies && data.strategies.length > 0) {
+                        data.strategies.forEach(strategy => {
+                            const option = document.createElement('option');
+                            option.value = strategy.id;
+                            option.textContent = `${strategy.name || 'Unnamed Strategy'} (${new Date(strategy.created_at).toLocaleDateString()})`;
+                            select.appendChild(option);
+                        });
+                    }
+                    
+                    // If legacy strategy exists, add it
+                    if (data.legacy && data.strategy_code) {
+                        const option = document.createElement('option');
+                        option.value = 'legacy';
+                        option.textContent = 'Legacy Strategy (Old Format)';
+                        select.appendChild(option);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading strategies:', error);
+            }
+        }
+
+        // Load saved strategies on page load
+        loadStrategies();
+
+        // Load Saved Strategy
+        document.getElementById('load-strategy-btn').addEventListener('click', async function() {
+            const statusSpan = document.getElementById('save-status');
+            const strategyId = document.getElementById('strategy-select').value;
+
+            if (!strategyId) {
+                statusSpan.textContent = '⚠️ Please select a strategy first';
+                statusSpan.style.color = '#ffc107';
+                setTimeout(() => {
+                    statusSpan.textContent = '';
+                }, 3000);
+                return;
+            }
+
+            this.disabled = true;
+            this.textContent = '⏳ Loading...';
+
+            try {
+                let response;
+                if (strategyId === 'legacy') {
+                    // Load legacy strategy
+                    response = await fetch('/load_custom_strategy', {
+                        method: 'GET'
+                    });
+                } else {
+                    // Load specific strategy by ID
+                    response = await fetch(`/load_strategy/${strategyId}`, {
+                        method: 'GET'
+                    });
+                }
+
+                const data = await response.json();
 
                 if (response.ok && data.success) {
-                    document.getElementById('strategy-code').value = data.strategy_code;
-                    statusSpan.textContent = '✅ Strategy loaded!';
+                    // Load strategy code
+                    document.getElementById('strategy-code').value = data.strategy_code || '';
+                    
+                    // Load trading settings if available
+                    if (data.settings) {
+                        if (data.settings.symbol) document.getElementById('symbol').value = data.settings.symbol;
+                        if (data.settings.strategy_name) document.getElementById('strategy_name').value = data.settings.strategy_name;
+                        if (data.settings.initial_balance) document.getElementById('initial_balance').value = data.settings.initial_balance;
+                        if (data.settings.leverage) document.getElementById('leverage').value = data.settings.leverage;
+                        if (data.settings.risk_reward) document.getElementById('risk_reward').value = data.settings.risk_reward;
+                        if (data.settings.stop_loss) document.getElementById('stop_loss').value = data.settings.stop_loss;
+                        if (data.settings.margin_per_trade) document.getElementById('margin_per_trade').value = data.settings.margin_per_trade;
+                        if (data.settings.trading_fee) document.getElementById('trading_fee').value = data.settings.trading_fee;
+                        if (data.settings.max_hold_hours) document.getElementById('max_hold_hours').value = data.settings.max_hold_hours;
+                        if (data.settings.period) document.getElementById('period').value = data.settings.period;
+                        if (data.settings.interval) document.getElementById('interval').value = data.settings.interval;
+                    }
+                    
+                    statusSpan.textContent = '✅ Strategy and settings loaded!';
                     statusSpan.style.color = '#28a745';
                     setTimeout(() => {
                         statusSpan.textContent = '';
@@ -455,7 +536,7 @@ df['Action'] = np.select([buy_condition, sell_condition], ['buy', 'sell'], defau
                 statusSpan.style.color = '#dc3545';
             } finally {
                 this.disabled = false;
-                this.textContent = '📂 Load Saved Strategy';
+                this.textContent = '📂 Load Selected';
             }
         });
 
@@ -464,27 +545,58 @@ df['Action'] = np.select([buy_condition, sell_condition], ['buy', 'sell'], defau
             const strategyCode = document.getElementById('strategy-code').value;
             const statusSpan = document.getElementById('save-status');
 
+            if (!strategyCode) {
+                statusSpan.textContent = '⚠️ Please enter strategy code first';
+                statusSpan.style.color = '#ffc107';
+                setTimeout(() => {
+                    statusSpan.textContent = '';
+                }, 3000);
+                return;
+            }
+
             this.disabled = true;
             statusSpan.textContent = '⏳ Saving...';
             statusSpan.style.color = '#007bff';
 
             try {
+                // Collect trading settings
+                const tradingSettings = {
+                    symbol: document.getElementById('symbol').value,
+                    strategy_name: document.getElementById('strategy_name').value,
+                    initial_balance: parseFloat(document.getElementById('initial_balance').value),
+                    leverage: parseInt(document.getElementById('leverage').value),
+                    risk_reward: document.getElementById('risk_reward').value,
+                    stop_loss: parseFloat(document.getElementById('stop_loss').value),
+                    margin_per_trade: parseFloat(document.getElementById('margin_per_trade').value),
+                    trading_fee: parseFloat(document.getElementById('trading_fee').value),
+                    max_hold_hours: parseFloat(document.getElementById('max_hold_hours').value),
+                    period: document.getElementById('period').value,
+                    interval: document.getElementById('interval').value
+                };
+
                 const response = await fetch('/save_custom_strategy', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ strategy_code: strategyCode })
+                    body: JSON.stringify({
+                        strategy_code: strategyCode,
+                        strategy_name: tradingSettings.strategy_name,
+                        trading_settings: tradingSettings
+                    })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    statusSpan.textContent = '✅ Strategy saved!';
+                    statusSpan.textContent = '✅ Strategy and settings saved!';
                     statusSpan.style.color = '#28a745';
                     setTimeout(() => {
                         statusSpan.textContent = '';
                     }, 3000);
+                    
+                    // Reload strategies dropdown
+                    loadStrategies();
                 } else {
                     statusSpan.textContent = '❌ Error: ' + data.error;
                     statusSpan.style.color = '#dc3545';
