@@ -39,11 +39,10 @@ class CryptoMarginTrader:
         self.position_details = {}
 
         self.trade_book = pd.DataFrame(columns=[
-            'Symbol', 'Side', 'Status', 'PositionSize', 'EntryPrice', 'ExitPrice',
+            'Symbol', 'Side', 'Status', 'RealizedPnL', 'PnL%', 'PositionSize', 'EntryPrice', 'ExitPrice',
             'EntryTime', 'ExitTime', 'HoldingMinutes', 'StopLoss', 'TakeProfit',
-            'Leverage', 'MarginUsed', 'TradingFee', 'RealizedPnL', 'PnL%',
-            'AvailableBalance', 'TotalBalance', 'ExitReason', 'ALUS',
-            'Avg_Lower_Shadow', 'Avg_Upper_Shadow', '9EMA', '15EMA'
+            'Leverage', 'MarginUsed', 'TradingFee',
+            'AvailableBalance', 'ExitReason'
         ])
 
     def calculate_position_size(self, price, margin_to_use):
@@ -59,10 +58,9 @@ class CryptoMarginTrader:
         position_value = position_size * price
         return position_value / self.leverage
 
-    def calculate_trading_fee(self, position_size, price):
-        """Calculate trading fee - 0.1% of position value"""
-        position_value = position_size * price
-        return position_value * self.trading_fee
+    def calculate_trading_fee(self, margin_used):
+        """Calculate trading fee as a percentage of margin used (user-entered %)"""
+        return margin_used * self.trading_fee
 
     def calculate_unrealized_pnl(self, current_price):
         """Calculate unrealized P&L for active position"""
@@ -98,8 +96,8 @@ class CryptoMarginTrader:
         # Calculate actual margin required
         margin_required = self.calculate_margin_required(position_size, entry_price)
 
-        # Calculate fees (entry fee)
-        entry_fee = self.calculate_trading_fee(position_size, entry_price)
+        # Calculate fees (entry fee) as % of margin used
+        entry_fee = self.calculate_trading_fee(margin_required)
 
         # Check if we have enough balance for margin + fees
         total_required = margin_required + entry_fee
@@ -138,13 +136,6 @@ class CryptoMarginTrader:
             'leverage': self.leverage
         }
 
-        # Get additional data from row
-        alus = row.get('ALUS', None) if row is not None else None
-        avg_lower = row.get('Avg_Lower_Shadow', None) if row is not None else None
-        avg_upper = row.get('Avg_Upper_Shadow', None) if row is not None else None
-        ema9 = row.get('9EMA', None) if row is not None else None
-        ema15 = row.get('15EMA', None) if row is not None else None
-
         # Add to trade book
         new_trade = pd.DataFrame({
             'Symbol': [self.symbol_name],
@@ -164,13 +155,7 @@ class CryptoMarginTrader:
             'RealizedPnL': [0],
             'PnL%': [0],
             'AvailableBalance': [round(self.available_balance, 2)],
-            'TotalBalance': [round(self.total_balance, 2)],
-            'ExitReason': [None],
-            'ALUS': [alus],
-            'Avg_Lower_Shadow': [avg_lower],
-            'Avg_Upper_Shadow': [avg_upper],
-            '9EMA': [ema9],
-            '15EMA': [ema15]
+            'ExitReason': [None]
         })
 
         self.trade_book = pd.concat([self.trade_book, new_trade], ignore_index=True)
@@ -183,9 +168,9 @@ class CryptoMarginTrader:
 
         details = self.position_details
 
-        # Calculate exit fee
-        exit_fee = self.calculate_trading_fee(details['position_size'], exit_price)
-        total_fees = details['total_fees'] + exit_fee
+        # Calculate exit fee as % of margin used
+        exit_fee = self.calculate_trading_fee(details['margin_used'])
+        total_fees = details['total_fees'] + exit_fee/2
 
         # Calculate realized P&L
         if details['side'] == 'LONG':
@@ -193,7 +178,8 @@ class CryptoMarginTrader:
         else:  # SHORT
             price_pnl = (details['entry_price'] - exit_price) * details['position_size']
 
-        realized_pnl = price_pnl - total_fees
+        # Entry fee was already deducted at open; realized PnL should only subtract exit fee here
+        realized_pnl = price_pnl - exit_fee
         pnl_percentage = (realized_pnl / details['margin_used']) * 100
 
         # Calculate holding time
@@ -214,7 +200,6 @@ class CryptoMarginTrader:
         self.trade_book.at[last_index, 'RealizedPnL'] = round(realized_pnl, 2)
         self.trade_book.at[last_index, 'PnL%'] = round(pnl_percentage, 2)
         self.trade_book.at[last_index, 'AvailableBalance'] = round(self.available_balance, 2)
-        self.trade_book.at[last_index, 'TotalBalance'] = round(self.available_balance, 2)  # No open positions
         self.trade_book.at[last_index, 'ExitReason'] = exit_reason
 
         # Clear position
@@ -387,7 +372,7 @@ class CryptoMarginTrader:
             'avg_holding_minutes': round(avg_holding_time, 2),
             'trading_days': trading_days,
             'total_fees': round(total_fees, 4),
-            'leverage': f"{self.leverage}x",
+            'leverage': self.leverage,
             'risk_reward': self.RiskToReward,
             'stop_loss_pct': f"{self.stoploss_percentage*100}%"
         }
