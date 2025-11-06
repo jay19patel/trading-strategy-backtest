@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
-import yfinance as yf
+import requests
+import time
 from datetime import datetime, timedelta
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -29,51 +30,136 @@ BACKTESTS_FILE = 'saved_backtests/backtests.json'
 
 
 def download_and_process_data(symbol, period, interval):
-    """Download and process market data"""
-    # Download data
-    df = yf.download(symbol, period=period, interval=interval)
+    """Download and process market data from Delta Exchange API"""
 
-    # Remove Ticker row (if present) by resetting columns
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.droplevel(1)
+    # Convert interval to Delta Exchange resolution format
+    # API supports: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 1d, 1w
+    interval_map = {
+        '1m': '1m', '2m': '1m', '3m': '3m', '5m': '5m',
+        '15m': '15m', '30m': '30m', '60m': '1h', '1h': '1h',
+        '2h': '2h', '4h': '4h', '6h': '6h', '12h': '6h',
+        '1d': '1d', '1wk': '1w'
+    }
+    resolution = interval_map.get(interval, '5m')
 
-    df["DateTime"] = df.index
-    # Convert index to Asia/Kolkata timezone if timezone-aware
-    if df.index.tz is not None:
-        df.index = df.index.tz_convert('Asia/Kolkata')
-    df['Date'] = df.index.date
-    df['Time'] = df.index.strftime('%I:%M %p')  # AM/PM format
+    # Calculate start and end timestamps based on period
+    # Using current UTC time for end timestamp
+    end_time = int(time.time())
+    period_map = {
+        '1d': 1, '2d': 2, '5d': 5, '10d': 10, '1mo': 30, '2mo': 60,
+        '3mo': 90, '6mo': 180, '1y': 365
+    }
+    days = period_map.get(period, 2)
+    start_time = end_time - (days * 24 * 60 * 60)
 
-    # Calculate fixed EMAs (9 and 15) for strategy
-    ema_list = [9, 15]
-    for ema_length in ema_list:
-        ema_name = f'{ema_length}EMA'
-        df[ema_name] = ta.ema(df['Close'], length=ema_length)
+    # Prepare API request with MARK: prefix for mark price historical data
+    headers = {'Accept': 'application/json'}
+    params = {
+        'resolution': resolution,
+        'symbol': f'MARK:{symbol}',
+        'start': str(start_time),
+        'end': str(end_time)
+    }
 
-    # No RSI needed for fixed strategy
+    # Retry logic: try up to 3 times
+    df = None
+    last_error = None
 
-    df['Candle'] = df.apply(lambda row: 'Green' if row['Close'] >= row['Open'] else 'Red', axis=1)
+    for attempt in range(3):
+        try:
+            response = requests.get(
+                'https://api.india.delta.exchange/v2/history/candles',
+                params=params,
+                headers=headers,
+                timeout=10
+            )
 
-    # Calculate body and shadows
-    Body = abs(df['Close'] - df['Open'])
-    Upper_Shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
-    Lower_Shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
-    Total_Range = df['High'] - df['Low']
+            if response.status_code == 200:
+                data = response.json()
 
-    # Calculate body percentage
-    df['Body'] = (Body / Total_Range) * 100
+                # Check if data is available
+                if 'success' in data and data['success'] and 'result' in data and len(data['result']) > 0:
+                    candles = data['result']
 
-    # Calculate shadow %
-    df['Upper_Shadow'] = (Upper_Shadow / Total_Range) * 100
-    df['Lower_Shadow'] = (Lower_Shadow / Total_Range) * 100
+                    # Create DataFrame from candles - using lowercase keys from API
+                    df_data = []
+                    for candle in candles:
+                        # Handle None volume by setting it to 0
+                        volume = candle['volume'] if candle['volume'] is not None else 0
+                        df_data.append({
+                            'time': candle['time'],
+                            'Open': float(candle['open']),
+                            'High': float(candle['high']),
+                            'Low': float(candle['low']),
+                            'Close': float(candle['close']),
+                            'Volume': float(volume)
+                        })
 
-    # Rolling average of previous 5 candles
-    SEMA = 5
-    df['Avg_Upper_Shadow'] = df['Upper_Shadow'].rolling(window=SEMA, min_periods=1).mean()
-    df['Avg_Lower_Shadow'] = df['Lower_Shadow'].rolling(window=SEMA, min_periods=1).mean()
-    df["ALUS"] = df['Avg_Lower_Shadow'] / df['Avg_Upper_Shadow']
+                    df = pd.DataFrame(df_data)
 
-    return df
+                    # Convert timestamp to datetime with proper timezone
+                    df['DateTime'] = pd.to_datetime(df['time'], unit='s', utc=True)
+                    df['DateTime'] = df['DateTime'].dt.tz_convert('Asia/Kolkata')
+
+                    # Sort by DateTime in ascending order (oldest first, latest last)
+                    df = df.sort_values('DateTime', ascending=True)
+
+                    # Set DateTime as index
+                    df.set_index('DateTime', inplace=True)
+
+                    # Add DateTime column back for easy access
+                    df['DateTime'] = df.index
+
+                    # Add Date in DD/MM/YYYY format and Time in 12-hour format
+                    df['Date'] = df.index.strftime('%d/%m/%Y')
+                    df['Time'] = df.index.strftime('%I:%M %p')
+
+                    # Calculate fixed EMAs (9 and 15) for strategy
+                    ema_list = [9, 15]
+                    for ema_length in ema_list:
+                        ema_name = f'{ema_length}EMA'
+                        df[ema_name] = ta.ema(df['Close'], length=ema_length)
+
+                    # Calculate candle color
+                    df['Candle'] = df.apply(lambda row: 'Green' if row['Close'] >= row['Open'] else 'Red', axis=1)
+
+                    # Calculate body and shadows
+                    Body = abs(df['Close'] - df['Open'])
+                    Upper_Shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
+                    Lower_Shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
+                    Total_Range = df['High'] - df['Low']
+
+                    # Calculate body percentage
+                    df['Body'] = (Body / Total_Range) * 100
+
+                    # Calculate shadow %
+                    df['Upper_Shadow'] = (Upper_Shadow / Total_Range) * 100
+                    df['Lower_Shadow'] = (Lower_Shadow / Total_Range) * 100
+
+                    # Rolling average of previous 5 candles
+                    SEMA = 5
+                    df['Avg_Upper_Shadow'] = df['Upper_Shadow'].rolling(window=SEMA, min_periods=1).mean()
+                    df['Avg_Lower_Shadow'] = df['Lower_Shadow'].rolling(window=SEMA, min_periods=1).mean()
+                    df["ALUS"] = df['Avg_Lower_Shadow'] / df['Avg_Upper_Shadow']
+
+                    # Drop the time column as we have DateTime
+                    df.drop('time', axis=1, inplace=True)
+
+                    return df
+                else:
+                    last_error = "No data available in API response or API returned success=false"
+            else:
+                last_error = f"API returned status code {response.status_code}"
+
+        except Exception as e:
+            last_error = str(e)
+
+        # Wait before retrying (except on last attempt)
+        if attempt < 2:
+            time.sleep(1)
+
+    # If all retries failed, raise error
+    raise Exception(f"Failed to fetch data after 3 attempts. Last error: {last_error}")
 
 
 def apply_fixed_strategy_conditions(df):
@@ -415,15 +501,8 @@ def index():
 def run_backtest():
     """Process backtest request"""
     try:
-        # Get form parameters
-        symbol_input = request.form.get('symbol', 'BTC-USD').upper()
-        
-        # Convert symbol format for yfinance
-        # If it's like BTCUSDT, convert to BTC-USD
-        if len(symbol_input) >= 6 and symbol_input[-4:] == 'USDT':
-            symbol = symbol_input[:-4] + '-USD'
-        else:
-            symbol = symbol_input
+        # Get form parameters (symbol is now directly from Delta Exchange)
+        symbol = request.form.get('symbol', 'BTCUSD').upper()
         initial_balance = float(request.form.get('initial_balance', 1000))
         max_hold_hours = float(request.form.get('max_hold_hours', 12))
         risk_reward = request.form.get('risk_reward', '1:2')
@@ -476,8 +555,9 @@ def run_backtest():
 
         # Convert trades to dict for JSON
         trades_df = trader.trade_book.copy()
-        trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
-        trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        # Format EntryTime and ExitTime to DD/MM/YYYY HH:MM AM/PM
+        trades_df['EntryTime'] = pd.to_datetime(trades_df['EntryTime']).dt.strftime('%d/%m/%Y %I:%M %p')
+        trades_df['ExitTime'] = pd.to_datetime(trades_df['ExitTime']).dt.strftime('%d/%m/%Y %I:%M %p')
         trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
 
@@ -589,14 +669,8 @@ def view_history():
 def get_dataframe_info():
     """Get DataFrame columns and last 3 rows preview"""
     try:
-        symbol_input = request.json.get('symbol', 'BTC-USD').upper()
-
-        # Convert symbol format
-        if len(symbol_input) >= 6 and symbol_input[-4:] == 'USDT':
-            symbol = symbol_input[:-4] + '-USD'
-        else:
-            symbol = symbol_input
-
+        # Get symbol directly (no conversion needed for Delta Exchange)
+        symbol = request.json.get('symbol', 'BTCUSD').upper()
         period = request.json.get('period', '5d')
         interval = request.json.get('interval', '15m')
 
@@ -736,15 +810,8 @@ def load_strategy_by_id(strategy_id):
 def run_backtest_custom():
     """Run backtest with custom strategy"""
     try:
-        # Get form parameters
-        symbol_input = request.form.get('symbol', 'BTC-USD').upper()
-
-        # Convert symbol format
-        if len(symbol_input) >= 6 and symbol_input[-4:] == 'USDT':
-            symbol = symbol_input[:-4] + '-USD'
-        else:
-            symbol = symbol_input
-
+        # Get form parameters (symbol is now directly from Delta Exchange)
+        symbol = request.form.get('symbol', 'BTCUSD').upper()
         initial_balance = float(request.form.get('initial_balance', 1000))
         max_hold_hours = float(request.form.get('max_hold_hours', 12))
         risk_reward = request.form.get('risk_reward', '1:2')
@@ -818,8 +885,9 @@ def run_backtest_custom():
 
         # Convert trades to dict
         trades_df = trader.trade_book.copy()
-        trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
-        trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        # Format EntryTime and ExitTime to DD/MM/YYYY HH:MM AM/PM
+        trades_df['EntryTime'] = pd.to_datetime(trades_df['EntryTime']).dt.strftime('%d/%m/%Y %I:%M %p')
+        trades_df['ExitTime'] = pd.to_datetime(trades_df['ExitTime']).dt.strftime('%d/%m/%Y %I:%M %p')
         trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
 
@@ -1125,8 +1193,9 @@ def view_backtest(filename):
         
         # Convert trades to dict for JSON
         trades_df = df.copy()
-        trades_df['EntryTime'] = trades_df['EntryTime'].astype(str)
-        trades_df['ExitTime'] = trades_df['ExitTime'].astype(str)
+        # Format EntryTime and ExitTime to DD/MM/YYYY HH:MM AM/PM
+        trades_df['EntryTime'] = pd.to_datetime(trades_df['EntryTime']).dt.strftime('%d/%m/%Y %I:%M %p')
+        trades_df['ExitTime'] = pd.to_datetime(trades_df['ExitTime']).dt.strftime('%d/%m/%Y %I:%M %p')
         trades_df = trades_df.replace({np.nan: None})
         trades_data = trades_df.to_dict('records')
         
