@@ -1,26 +1,11 @@
 
+# --- Calculate EMAs ---
+df['EMA_9'] = df['Close'].ewm(span=9, adjust=False).mean()
+df['EMA_15'] = df['Close'].ewm(span=15, adjust=False).mean()
 
-
-target = 0.04      # 4% profit target
-stoploss = 0.02     # 2% stoploss
-window = 15         # look ahead next 15 candles
-
-# --- Compute future highs/lows safely (no lookahead bias) ---
-future_high = df['High'].shift(-1).rolling(window=window, min_periods=1).max().shift(-window + 1)
-future_low = df['Low'].shift(-1).rolling(window=window, min_periods=1).min().shift(-window + 1)
-
-# --- BUY & SELL CONDITIONS ---
-buy_condition = (
-    (future_high >= df['Close'] * (1 + target)) &
-    (future_low >= df['Close'] * (1 - stoploss))
-)
-
-sell_condition = (
-    (future_low <= df['Close'] * (1 - target)) &
-    (future_high <= df['Close'] * (1 + stoploss))
-)
+# --- Identify Crossovers ---
+df['Buy_Signal'] = (df['EMA_9'] > df['EMA_15']) & (df['EMA_9'].shift(1) <= df['EMA_15'].shift(1))
+df['Sell_Signal'] = (df['EMA_9'] < df['EMA_15']) & (df['EMA_9'].shift(1) >= df['EMA_15'].shift(1))
 
 # --- Assign Actions ---
-df['Action'] = np.select([buy_condition, sell_condition], ['buy', 'sell'], default=None)
-
-
+df['Action'] = np.select([df['Buy_Signal'], df['Sell_Signal']], ['buy', 'sell'], default=None)

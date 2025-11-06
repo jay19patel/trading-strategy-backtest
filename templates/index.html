@@ -22,8 +22,13 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="symbol" style="font-size: 13px;">Symbol</label>
-                        <input type="text" id="symbol" name="symbol" value="BTC-USD" required
-                               style="padding: 8px; font-size: 13px;">
+                        <select id="symbol" name="symbol" required style="padding: 8px; font-size: 13px;">
+                            <option value="BTCUSD" selected>BTCUSD</option>
+                            <option value="ETHUSD">ETHUSD</option>
+                            <option value="SOLUSD">SOLUSD</option>
+                            <option value="ADAUSD">ADAUSD</option>
+                            <option value="SHIBUSD">SHIBUSD</option>
+                        </select>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
@@ -77,15 +82,15 @@
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="period" style="font-size: 13px;">Data Period</label>
                         <select id="period" name="period" required style="padding: 8px; font-size: 13px;">
+                            <option value="1d">1 Day</option>
+                            <option value="2d">2 Days</option>
                             <option value="5d" selected>5 Days</option>
+                            <option value="10d">10 Days</option>
                             <option value="1mo">1 Month</option>
+                            <option value="2mo">2 Months</option>
                             <option value="3mo">3 Months</option>
                             <option value="6mo">6 Months</option>
                             <option value="1y">1 Year</option>
-                            <option value="2y">2 Years</option>
-                            <option value="5y">5 Years</option>
-                            <option value="10y">10 Years</option>
-                            <option value="max">Max</option>
                         </select>
                     </div>
 
